@@ -69,7 +69,6 @@ class POSE_OT_add_bone(bpy.types.Operator):
         prev_bones = self.get_prev_bones(rig)
         bone = rig.data.edit_bones.new('Bone')
         bone.parent = root
-        bone.tail = Vector((0, 0, 0.5))
 
         bone.translate(
             Vector(utils.multiply_list(
@@ -80,7 +79,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
 
         # Use the original bone size (unscaled by the rig)
         bone.tail = bone.head + Vector(utils.multiply_list(
-            Vector((0, 0, 0.5)),
+            Vector((0, 0, 0.1)),
             rig.matrix_world.inverted().to_scale(),
         )) - rig.matrix_world.to_translation()
 
