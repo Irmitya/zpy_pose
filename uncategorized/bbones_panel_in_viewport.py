@@ -1,4 +1,5 @@
 import bpy
+from zpy import Is
 
 
 class VIEW3D_BONE_PT_curved(bpy.types.Panel):
@@ -10,32 +11,35 @@ class VIEW3D_BONE_PT_curved(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return (context.active_bone or context.active_pose_bone)
+        bone = context.active_bone
+        bbone = context.active_pose_bone
+
+        if (bone and Is.linked(bone) and bone.bbone_segments == 1):
+            return
+
+        return (bone or bbone)
 
     def draw(self, context):
-        ob = context.object
+        arm = context.object.data
         bone = context.active_bone
-        bone_list = "bones"
+        bbone = context.active_pose_bone
 
         if (context.mode == 'EDIT_ARMATURE'):
             bbone = bone
         elif bone is None:
-            bbone = context.active_pose_bone
             bone = bbone.bone
-            ob = bbone.id_data
-        else:
-            bbone = ob.pose.bones[bone.name]
 
-        arm = ob.data
+        linked = Is.linked(bbone)
 
         layout = self.layout
         layout.use_property_split = True
 
-        layout.prop(bone, "bbone_segments", text="Segments")
+        if not linked:
+            layout.prop(bone, "bbone_segments", text="Segments")
 
-        col = layout.column(align=True)
-        col.prop(bone, "bbone_x", text="Display Size X")
-        col.prop(bone, "bbone_z", text="Z")
+            col = layout.column(align=True)
+            col.prop(bone, "bbone_x", text="Display Size X")
+            col.prop(bone, "bbone_z", text="Z")
 
         topcol = layout.column()
         topcol.active = bone.bbone_segments > 1
@@ -51,7 +55,8 @@ class VIEW3D_BONE_PT_curved(bpy.types.Panel):
         col = topcol.column(align=True)
         col.prop(bbone, "bbone_rollin", text="Roll In")
         col.prop(bbone, "bbone_rollout", text="Out")
-        col.prop(bone, "use_endroll_as_inroll")
+        if not linked:
+            col.prop(bone, "use_endroll_as_inroll")
 
         col = topcol.column(align=True)
         col.prop(bbone, "bbone_scaleinx", text="Scale In X")
@@ -65,25 +70,26 @@ class VIEW3D_BONE_PT_curved(bpy.types.Panel):
         col.prop(bbone, "bbone_easein", text="Ease In")
         col.prop(bbone, "bbone_easeout", text="Out")
 
-        col = topcol.column(align=True)
-        col.prop(bone, "bbone_handle_type_start", text="Start Handle")
+        if not linked:
+            col = topcol.column(align=True)
+            col.prop(bone, "bbone_handle_type_start", text="Start Handle")
 
-        col = col.column(align=True)
-        col.active = (bone.bbone_handle_type_start != 'AUTO')
-        col.prop_search(bone, "bbone_custom_handle_start", arm, bone_list, text="Custom")
+            col = col.column(align=True)
+            col.active = (bone.bbone_handle_type_start != 'AUTO')
+            col.prop_search(bone, "bbone_custom_handle_start", arm, "bones", text="Custom")
 
-        col = topcol.column(align=True)
-        col.prop(bone, "bbone_handle_type_end", text="End Handle")
+            col = topcol.column(align=True)
+            col.prop(bone, "bbone_handle_type_end", text="End Handle")
 
-        col = col.column(align=True)
-        col.active = (bone.bbone_handle_type_end != 'AUTO')
-        col.prop_search(bone, "bbone_custom_handle_end", arm, bone_list, text="Custom")
+            col = col.column(align=True)
+            col.active = (bone.bbone_handle_type_end != 'AUTO')
+            col.prop_search(bone, "bbone_custom_handle_end", arm, "bones", text="Custom")
 
-        # Detach BBones
-        row = layout.row(align=True)
-        row.operator('pose.attach_bbone', text="In").end = False
-        row.operator('pose.detachbbone', text="Default")
-        row.operator('pose.attach_bbone', text="Out").end = True
+            # Detach BBones
+            row = layout.row(align=True)
+            row.operator('pose.attach_bbone', text="In").end = False
+            row.operator('pose.detachbbone', text="Default")
+            row.operator('pose.attach_bbone', text="Out").end = True
 
 
 class VIEW3D_BONE_PT_curved_edit(bpy.types.Panel):
@@ -96,7 +102,7 @@ class VIEW3D_BONE_PT_curved_edit(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return (context.mode != 'EDIT_ARMATURE')
+        return (context.mode != 'EDIT_ARMATURE') and not Is.linked(context.active_bone)
 
     def draw(self, context):
         bone = context.active_bone
