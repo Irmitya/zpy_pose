@@ -1,5 +1,5 @@
 import bpy
-from zpy import Get, Is, New, Set, Constraint, utils
+from zpy import Get, Is, New, Set, utils
 
 
 mt = bpy.types.VIEW3D_MT_armature_add
@@ -36,6 +36,7 @@ class CON_OT_add_ik_chain(bpy.types.Operator):
                 return True
 
     def execute(self, context):
+        from zpy_constraints import Constraint
         wgt = utils.find_op('bonewidget.create_widget')
         # if wgt is None:
         #     def wgt(*nil, **null):
