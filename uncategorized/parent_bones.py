@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import EnumProperty, BoolProperty
-from zpy import Get, Set, utils, register_keymaps, is27, is28
+from zpy import Get, Set, utils, register_keymaps
 km = register_keymaps()
 
 
@@ -180,9 +180,9 @@ class POSE_MT_set_parent(bpy.types.Menu):
 
             *[a for a in [
                 ("ARMATURE", "Armature Deform", "", 'OUTLINER_OB_ARMATURE', 2),
-                ("ARMATURE_NAME", "   With Empty Groups", "", ('OUTLINER_DATA_ARMATURE' if is27 else 'POSE_HLT'), 3),
+                ("ARMATURE_NAME", "   With Empty Groups", "", 'POSE_HLT', 3),
                 *[a for a in [
-                    ("ARMATURE_AUTO", "   With Automatic Weights", "", ('OUTLINER_DATA_POSE' if is27 else 'OUTLINER_DATA_ARMATURE'), 4),
+                    ("ARMATURE_AUTO", "   With Automatic Weights", "", 'OUTLINER_DATA_ARMATURE', 4),
                     ] if (has.mesh or has.gpencil)],
                 ("ARMATURE_ENVELOPE", "   With Envelope Weights", "", 'MOD_ARMATURE', 5),
                 ("BONE", "Bone", "", 'BONE_DATA', 6),
