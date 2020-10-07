@@ -672,10 +672,12 @@ def register():
     bpy.types.VIEW3D_MT_armature_add.prepend(draw_add_armature)
 
     def mch_update(self, context):
-        if not context.scene.mch_bone:
-            context.scene.mch_bone = "MCH-parent_"
+        if not context.scene.mch_bone.startswith('Prefix:  '):
+            context.scene.mch_bone = "Prefix:  " + context.scene.mch_bone
+        # if not context.scene.mch_bone:
+            # context.scene.mch_bone = "MCH-parent_"
     bpy.types.Scene.mch_bone = bpy.props.StringProperty(
-        default="MCH-parent_",
+        default="Prefix:  MCH-parent_",
         update=mch_update
     )
 
