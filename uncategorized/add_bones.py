@@ -631,45 +631,42 @@ def draw_add_armature(self, context):
         return
 
     layout = self.layout
-    layout.operator_context = 'EXEC_DEFAULT'
+    layout.menu('POSE_MT_add_bone', icon='BONE_DATA')
 
-    col = layout.column(align=True)
-
-    col.operator_enum(POSE_OT_add_bone.bl_idname, 'type')
-
-    # Strings can't be in the same block in menus
-    mch = context.scene.mch_bone
-    # icon = 'COLLAPSEMENU'
-    icon = 'TEXT'
-
-    if mch:
-        col.prop(context.scene, 'mch_bone', text="", icon=icon)
-    else:
-        row = col.column(align=True)
-        row.scale_y = 0.1
-        row.row(align=True).prop(context.scene, 'mch_bone', text="")
-        col.label(text="Prefix:  MCH-parent_", icon=icon)
-
-    col.separator()
-
-    col.label(text="Pose Library")
+    # col.label(text="Pose Library")
     # op = col.operator('poselib.browse_interactive', text="Browse Poses...")
     # op = col.operator('poselib.mixcurrpose', text="Apply Pose Library Pose")
     # op = col.operator('poselib.mixedposepaste', text="Paste Mixed Pose")
     # col.prop(context.scene, 'posemixinfluence',
     #             text="Mix Influence", icon='ARROW_LEFTRIGHT')
 
-    col.separator()
+    # col.separator()
 
     # op = col.operator('poselib.pose_add', text="Add Pose...")
     # op = col.operator('poselib.pose_rename', text="Rename Pose...")
     # op = col.operator('poselib.pose_remove', text="Remove Pose...")
-    layout.separator()
+
+
+class POSE_MT_add_bone(bpy.types.Menu):
+    bl_description = ""
+    # bl_idname = 'POSE_MT_add_bone'
+    bl_label = "Add Bone"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'POSE'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator_context = 'EXEC_DEFAULT'
+
+        col = layout.column(align=True)
+        col.operator_enum(POSE_OT_add_bone.bl_idname, 'type')
+        col.prop(context.scene, 'mch_bone', text="", icon='TEXT')
 
 
 def register():
     km.add(POSE_OT_add_bone, name='Pose', type='D', shift=True).type = 'DUPLI'
-    bpy.types.VIEW3D_MT_armature_add.prepend(draw_add_armature)
 
     def mch_update(self, context):
         if not context.scene.mch_bone.startswith('Prefix:  '):
@@ -684,6 +681,4 @@ def register():
 
 def unregister():
     km.remove()
-    bpy.types.VIEW3D_MT_armature_add.remove(draw_add_armature)
-
     del (bpy.types.Scene.mch_bone)

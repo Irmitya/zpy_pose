@@ -2,9 +2,6 @@ import bpy
 from zpy import Get, Is, New, Set, utils
 
 
-mt = bpy.types.VIEW3D_MT_armature_add
-
-
 def copy(target, src, attr):
     setattr(target, attr, getattr(src, attr))
 
@@ -174,11 +171,3 @@ def draw_armature(self, context):
         return
     layout = self.layout
     layout.operator('zpy.add_ik_chain', icon='CON_KINEMATIC')
-
-
-def register():
-    mt.prepend(draw_armature)
-
-
-def unregister():
-    mt.remove(draw_armature)
