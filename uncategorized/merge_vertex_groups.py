@@ -112,12 +112,14 @@ class SUBTRACT_OT_vgroups(Operator):
     @classmethod
     def description(cls, context, properties):
         if properties.target == 'active':
-            return "Remove influence of the selected bone's vertex groups from active bone's vertex group" + \
+            txt = "Remove influence of the selected bone's vertex groups from active bone's vertex group" + \
             "\n(Decrease strength of active bone)"
         # elif properties.target == 'selected':
-            # return "Remove influence of the active bone's vertex group from select bones' vertex groups"
+            # txt = "Remove influence of the active bone's vertex group from select bones' vertex groups"
         else:
-            return cls.bl_description + "\n(Increase strength of active bone)"
+            txt = cls.bl_description + "\n(Increase strength of active bone)"
+
+        return txt
 
     @classmethod
     def poll(cls, context):

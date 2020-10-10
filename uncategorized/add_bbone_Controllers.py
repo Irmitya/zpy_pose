@@ -10,7 +10,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
     @classmethod
     def description(cls, context, properties):
-        txt = cls.bl_rna.description + ".\n"
+        txt = cls.bl_description + ".\n"
         if properties.controls == 'IN/OUT':
             return txt + "(Only add 2 end bones to control the bbone properties with drivers)"
         elif properties.controls == 'START/END':

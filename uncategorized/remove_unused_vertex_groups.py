@@ -11,7 +11,7 @@ class VGROUP_OT_remove_unused(bpy.types.Operator):
 
     @classmethod
     def description(cls, context, properties):
-        return cls.bl_rna.description
+        return cls.bl_description
 
     @classmethod
     def poll(cls, context):

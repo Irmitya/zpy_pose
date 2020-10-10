@@ -19,7 +19,7 @@ class CON_OT_add_ik_chain(bpy.types.Operator):
     @classmethod
     def description(cls, context, properties):
         if cls.poll(context):
-            return cls.bl_rna.description
+            return cls.bl_description
         elif context.selected_pose_bones:
             return "Selected bones don't have 2 parents for IK chain"
         else:
