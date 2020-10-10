@@ -24,9 +24,10 @@ class VIEW3D_BONE_PT_curved(bpy.types.Panel):
         bone = context.active_bone
         bbone = context.active_pose_bone
 
-        if (context.mode == 'EDIT_ARMATURE'):
+        if bbone is None:
             bbone = bone
         elif bone is None:
+            arm = bbone.id_data.data
             bone = bbone.bone
 
         linked = Is.linked(bbone)
@@ -46,10 +47,10 @@ class VIEW3D_BONE_PT_curved(bpy.types.Panel):
 
         col = topcol.column(align=True)
         col.prop(bbone, "bbone_curveinx", text="Curve In X")
-        col.prop(bbone, "bbone_curveiny", text="In Y")
+        col.prop(bbone, "bbone_curveoutx", text="Out X")
 
         col = topcol.column(align=True)
-        col.prop(bbone, "bbone_curveoutx", text="Curve Out X")
+        col.prop(bbone, "bbone_curveiny", text="Curve In Y")
         col.prop(bbone, "bbone_curveouty", text="Out Y")
 
         col = topcol.column(align=True)
@@ -102,10 +103,18 @@ class VIEW3D_BONE_PT_curved_edit(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return (context.mode != 'EDIT_ARMATURE') and not Is.linked(context.active_bone)
+        bone = context.active_bone
+        bbone = context.active_pose_bone
+        if bbone and not bone:
+            bone = bbone.bone
+
+        return (context.mode != 'EDIT_ARMATURE') and bone and not Is.linked(bone)
 
     def draw(self, context):
         bone = context.active_bone
+        bbone = context.active_pose_bone
+        if bbone and not bone:
+            bone = bbone.bone
 
         layout = self.layout
         layout.use_property_split = True
@@ -119,10 +128,10 @@ class VIEW3D_BONE_PT_curved_edit(bpy.types.Panel):
 
         col = topcol.column(align=True)
         col.prop(bone, "bbone_curveinx", text="Curve In X")
-        col.prop(bone, "bbone_curveiny", text="In Y")
+        col.prop(bone, "bbone_curveoutx", text="Out X")
 
         col = topcol.column(align=True)
-        col.prop(bone, "bbone_curveoutx", text="Curve Out X")
+        col.prop(bone, "bbone_curveiny", text="Curve In Y")
         col.prop(bone, "bbone_curveouty", text="Out Y")
 
         col = topcol.column(align=True)
