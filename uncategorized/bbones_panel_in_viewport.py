@@ -2,22 +2,21 @@ import bpy
 from zpy import Is
 
 
-class VIEW3D_BONE_PT_curved(bpy.types.Panel):
+class panels:
     bl_category = "Item"
-    bl_label = "Bendy Bones"
     bl_options = {'DEFAULT_CLOSED'}
     bl_region_type = 'UI'
     bl_space_type = 'VIEW_3D'
+    bl_parent_id = 'VIEW3D_BONE_PT_curved'
 
     @classmethod
     def poll(cls, context):
         bone = context.active_bone
         bbone = context.active_pose_bone
+        if bbone and not bone:
+            bone = bbone.bone
 
-        if (bone and Is.linked(bone) and bone.bbone_segments == 1):
-            return
-
-        return (bone or bbone)
+        return (context.mode != 'EDIT_ARMATURE') and bone and not Is.linked(bone)
 
     def draw(self, context):
         arm = context.object.data
@@ -34,13 +33,6 @@ class VIEW3D_BONE_PT_curved(bpy.types.Panel):
 
         layout = self.layout
         layout.use_property_split = True
-
-        if not linked:
-            layout.prop(bone, "bbone_segments", text="Segments")
-
-            col = layout.column(align=True)
-            col.prop(bone, "bbone_x", text="Display Size X")
-            col.prop(bone, "bbone_z", text="Z")
 
         topcol = layout.column()
         topcol.active = bone.bbone_segments > 1
@@ -93,22 +85,54 @@ class VIEW3D_BONE_PT_curved(bpy.types.Panel):
             row.operator('pose.attach_bbone', text="Out").end = True
 
 
-class VIEW3D_BONE_PT_curved_edit(bpy.types.Panel):
+class VIEW3D_BONE_PT_curved(bpy.types.Panel):
     bl_category = "Item"
-    bl_label = "Bendy Bones (Edit)"
+    bl_label = "Bendy Bones"
     bl_options = {'DEFAULT_CLOSED'}
     bl_region_type = 'UI'
     bl_space_type = 'VIEW_3D'
-    bl_parent_id = 'VIEW3D_BONE_PT_curved'
 
     @classmethod
     def poll(cls, context):
         bone = context.active_bone
         bbone = context.active_pose_bone
-        if bbone and not bone:
+
+        if (bone and Is.linked(bone) and bone.bbone_segments == 1):
+            return
+
+        return (bone or bbone)
+
+    def draw(self, context):
+        bone = context.active_bone
+        bbone = context.active_pose_bone
+
+        if bbone is None:
+            bbone = bone
+        elif bone is None:
             bone = bbone.bone
 
-        return (context.mode != 'EDIT_ARMATURE') and bone and not Is.linked(bone)
+        linked = Is.linked(bbone)
+
+        layout = self.layout
+        layout.use_property_split = True
+
+        if not linked:
+            layout.prop(bone, "bbone_segments", text="Segments")
+
+            col = layout.column(align=True)
+            col.prop(bone, "bbone_x", text="Display Size X")
+            col.prop(bone, "bbone_z", text="Z")
+
+        if not panels.poll(context):
+            panels.draw(self, context)
+
+
+class VIEW3D_BONE_PT_curved_pose(bpy.types.Panel, panels):
+    bl_label = "Bendy Bones (Pose)"
+
+
+class VIEW3D_BONE_PT_curved_edit(bpy.types.Panel, panels):
+    bl_label = "Bendy Bones (Edit)"
 
     def draw(self, context):
         bone = context.active_bone
@@ -145,3 +169,10 @@ class VIEW3D_BONE_PT_curved_edit(bpy.types.Panel):
         col = topcol.column(align=True)
         col.prop(bone, "bbone_scaleoutx", text="Scale Out X")
         col.prop(bone, "bbone_scaleouty", text="Out Y")
+
+
+classes = (
+    VIEW3D_BONE_PT_curved,
+    VIEW3D_BONE_PT_curved_pose,
+    VIEW3D_BONE_PT_curved_edit,
+)
