@@ -37,6 +37,8 @@ class METARIG_OT_add_rig(bpy.types.Operator):
 
 def add_menu(self, context):
     layout = self.layout
+    if context.mode != 'OBJECT':
+        return
     layout.operator('zpy.add_metarig', icon='OUTLINER_OB_ARMATURE')
 
 
