@@ -47,16 +47,16 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 # if the bone isn't using bbones
                 return
 
-        def get_name(suffix):
+        def get_name(bbone):
             bn = bone.name
-            if bn.lower().endswith(('.l', '.r')):
-                return f'{bn[:-2]}.{suffix}{bn[-2:]}'
-            elif bn.lower().endswith('.left'):
-                return f'{bn[:-5]}.{suffix}{bn[-5:]}'
-            elif bn.lower().endswith('.right'):
-                return f'{bn[:-6]}.{suffix}{bn[-6:]}'
+            (prefix, replace, suffix, number) = utils.flip_name(bn, only_split=True)
+
+            if prefix and replace:
+                return f"{prefix[:-1]}.{bbone}{prefix[-1]}{replace}{suffix}{number}"
+            elif suffix or number:
+                return f"{prefix}{replace}{suffix}.{bbone}{number}"
             else:
-                return f'{bn}.{suffix}'
+                return f"{bn}.{bbone}"
 
         def reset(bone, edit_bone):
             attributes = [
