@@ -38,6 +38,9 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         if self.controls == 'ALL':
             do_mch = do_start_end = do_in_out = True
+        elif self.controls == 'NO_MCH':
+            do_mch = False
+            do_start_end = do_in_out = True
         else:
             do_mch = (self.controls == 'MCH')
             do_start_end = (self.controls == 'START/END')
@@ -294,6 +297,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             ('MCH', "Mch", "Add FK control"),
             ('START/END', "Start / End", "Insert stretch bones as custom in/out bbone handles"),
             ('IN/OUT', "In / Out", "Add drivers and controls for the bones' bbone properties"),
+            ('NO_MCH', "No Mch", "Add everything but FK control"),
         ],
         name="Mode",
         description="Control setup to add for controlling the selected bones",
@@ -306,3 +310,4 @@ def draw_menu(self, context):
     self.layout.operator('zpy.add_bbone_controllers', icon='IPO_BEZIER')
     self.layout.operator('zpy.add_bbone_controllers', text="    (in/out)", icon='IPO_BEZIER').controls = 'IN/OUT'
     self.layout.operator('zpy.add_bbone_controllers', text="    (start/end)", icon='IPO_BEZIER').controls = 'START/END'
+    self.layout.operator('zpy.add_bbone_controllers', text="    (no MCH)", icon='IPO_BEZIER').controls = 'NO_MCH'
