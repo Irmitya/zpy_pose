@@ -51,6 +51,11 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             bn = bone.name
             (prefix, replace, suffix, number) = utils.flip_name(bn, only_split=True)
 
+            if bn == bn.title():
+                bbone = bbone.title()
+            elif bn == bn.upper():
+                bbone = bbone.upper()
+
             if prefix and replace:
                 return f"{prefix[:-1]}.{bbone}{prefix[-1]}{replace}{suffix}{number}"
             elif suffix or number:
