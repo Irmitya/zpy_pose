@@ -301,6 +301,30 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 widget=wgt,
             )
 
+        def set_bone_groups():
+            if do_mch:
+                bg = Get.bone_group(rig, "BBone FK")
+                if not bg:
+                    bg = New.bone_group(rig, "BBone FK", True)
+                bone_mch.bone_group = bg
+            if do_start_end:
+                bg = Get.bone_group(rig, "BBone Stretch")
+                if not bg:
+                    bg = New.bone_group(rig, "BBone Stretch", True)
+                bone_start.bone_group = bone_end.bone_group = bg
+            if do_in_out:
+                bg = Get.bone_group(rig, "BBone Curve")
+                if not bg:
+                    bg = New.bone_group(rig, "BBone Curve", True)
+                bone_in.bone_group = bone_out.bone_group = bg
+            if hide_bones:
+                bg = Get.bone_group(rig, "BBone Stretch [Hidden]")
+                if not bg:
+                    bg = New.bone_group(rig, "BBone Stretch [Hidden]", 'THEME20')
+                for name in hide_bones:
+                    rig.pose.bones[name].bone_group = bg
+                    rig.data.bones[name].hide = True
+
         if do_start_end:
             bone.bone.bbone_handle_type_start = bone.bone.bbone_handle_type_end = 'ABSOLUTE'
 
@@ -324,6 +348,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         if do_in_out:
             pose_in_out(bone_in, 'in')
             pose_in_out(bone_out, 'out')
+        set_bone_groups()
 
     controls: bpy.props.EnumProperty(
         items=[
