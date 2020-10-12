@@ -126,7 +126,9 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 ebone.parent = ebones[bone_start.name]
             else:
                 ebone.parent = ebones[bone.name]
-            ebone.tail = utils.lerp(ebone.head, ebone.tail, 0.1)
+            (head, tail) = (ebone.head.copy(), ebone.tail.copy())
+            ebone.head = utils.lerp(head, tail, 0.1)
+            ebone.tail = utils.lerp(head, tail, 0.2)
 
         def edit_out(ebone):
             edit(ebone, 2.0)
@@ -134,9 +136,9 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 ebone.parent = ebones[bone_end.name]
             else:
                 ebone.parent = ebones[bone.name]
-            ebone.head = utils.lerp(ebone.head, ebone.tail, 0.9)
-            ht = ebone.head.copy(), ebone.tail.copy()
-            ebone.tail, ebone.head = ht
+            (head, tail) = (ebone.head.copy(), ebone.tail.copy())
+            ebone.tail = utils.lerp(head, tail, 0.8)
+            ebone.head = utils.lerp(head, tail, 0.9)
             ebone.align_roll(-ebones[bone.name].z_axis)
                 # This bone is reversed, so the the roll needs to be flipped
 
