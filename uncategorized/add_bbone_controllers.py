@@ -35,6 +35,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
     def func(self, context, bone):
         rig = bone.id_data
         ebones = rig.data.edit_bones
+        hide_bones = list()  # bones to queue for hiding
 
         if self.controls == 'ALL':
             do_mch = do_start_end = do_in_out = True
@@ -50,7 +51,16 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 # if the bone isn't using bbones
                 return
 
-        def get_name(bbone):
+        def get_disconnected_parent(bone):
+            if ((bone is None) or (not bone.parent)):
+                return
+            elif bone.use_connect:
+                # Keep going up the chain until it finds a disconnected bone
+                return get_disconnected_parent(bone.parent)
+            else:
+                return bone.parent
+
+        def get_name(bone, bbone):
             bn = bone.name
             (prefix, replace, suffix, number) = utils.flip_name(bn, only_split=True)
 
@@ -97,10 +107,20 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         def edit_start(ebone):
             edit(ebone, 2.5)
+            bbone = ebones[bone.name]
             if do_mch:
                 ebone.parent = ebones[bone_mch.name]
             else:
-                ebone.parent = ebones[bone.name].parent
+                if bbone.parent and bbone.use_connect:
+                    ebone.parent = ebones.get(get_name(bbone.parent, 'bbone_end'))
+                if ebone.parent:
+                    hide_bones.append(ebone.name)
+                else:
+                    ebone.parent = get_disconnected_parent(bbone)
+                if not do_in_out:
+                    cbone = ebones.get(get_name(bbone, 'bbone_in'))
+                    if cbone:
+                        cbone.parent = ebone
             ebone.tail = utils.lerp(ebone.head, ebone.tail, 0.1)
 
         def edit_head(ebone):
@@ -112,20 +132,31 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         def edit_end(ebone):
             edit(ebone, 2.5)
+            bbone = ebones[bone.name]
             if do_mch:
                 ebone.parent = ebones[bone_mch.name]
             else:
-                ebone.parent = ebones[bone.name].parent
+                ebone.parent = get_disconnected_parent(bbone)
+                if not do_in_out:
+                    cbone = ebones.get(get_name(bbone, 'bbone_out'))
+                    if cbone:
+                        cbone.parent = ebone
+            for cbone in bbone.children:
+                if cbone.use_connect:
+                    cbone_start = ebones.get(get_name(cbone, 'bbone_start'))
+                    if cbone_start:
+                        cbone_start.parent = ebone
+                        hide_bones.append(cbone_start.name)
             ebone.head = utils.lerp(ebone.head, ebone.tail, 0.9)
             ebone.translate(ebone.tail - ebone.head)
-            ebones[bone.name].bbone_custom_handle_end = ebone
+            bbone.bbone_custom_handle_end = ebone
 
         def edit_in(ebone):
             edit(ebone, 2.0)
             if do_start_end:
                 ebone.parent = ebones[bone_start.name]
             else:
-                ebone.parent = ebones[bone.name]
+                ebone.parent = ebones.get(get_name(bone, 'bbone_start'), ebones[bone.name])
             (head, tail) = (ebone.head.copy(), ebone.tail.copy())
             ebone.head = utils.lerp(head, tail, 0.1)
             ebone.tail = utils.lerp(head, tail, 0.2)
@@ -135,7 +166,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             if do_start_end:
                 ebone.parent = ebones[bone_end.name]
             else:
-                ebone.parent = ebones[bone.name]
+                ebone.parent = ebones.get(get_name(bone, 'bbone_end'), ebones[bone.name])
             (head, tail) = (ebone.head.copy(), ebone.tail.copy())
             ebone.tail = utils.lerp(head, tail, 0.8)
             ebone.head = utils.lerp(head, tail, 0.9)
@@ -275,14 +306,14 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         args = dict(context=context, armature=rig, overwrite=True)
         if do_mch:
-            bone_mch = New.bone(**args, name=get_name('bbone'), edit=edit_mch)
+            bone_mch = New.bone(**args, name=get_name(bone, 'bbone'), edit=edit_mch)
         if do_start_end:
-            bone_start = New.bone(**args, name=get_name('bbone_start'), edit=edit_start)
-            bone_end = New.bone(**args, name=get_name('bbone_end'), edit=edit_end)
-            bone_head = New.bone(**args, name=get_name('bbone_head'), edit=edit_head)
+            bone_start = New.bone(**args, name=get_name(bone, 'bbone_start'), edit=edit_start)
+            bone_end = New.bone(**args, name=get_name(bone, 'bbone_end'), edit=edit_end)
+            bone_head = New.bone(**args, name=get_name(bone, 'bbone_head'), edit=edit_head)
         if do_in_out:
-            bone_in = New.bone(**args, name=get_name('bbone_in'), edit=edit_in)
-            bone_out = New.bone(**args, name=get_name('bbone_out'), edit=edit_out)
+            bone_in = New.bone(**args, name=get_name(bone, 'bbone_in'), edit=edit_in)
+            bone_out = New.bone(**args, name=get_name(bone, 'bbone_out'), edit=edit_out)
 
         if do_mch:
             pose_mch(bone_mch)
