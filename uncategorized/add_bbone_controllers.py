@@ -289,6 +289,9 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             Set.select(pbone, True)
             rig.data.bones.active = pbone.bone
 
+            mats = (pbone.matrix.copy(), bone.matrix.copy())
+            (bone.matrix, pbone.matrix) = mats
+
             pbone.rotation_mode = bone.rotation_mode
             pbone.lock_location = bone.lock_location
             pbone.lock_rotation = bone.lock_rotation
