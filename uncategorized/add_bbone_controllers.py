@@ -20,20 +20,45 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
     def poll(cls, context):
         return context.selected_pose_bones
 
+    def __init__(self):
+        self.hide_bones = list()  # bones to queue for hiding
+        self.bone_widgets = {'mch': [], 'start': [], 'end': [], 'head': [], 'in_out': []}
+
     def invoke(self, context, event):
         return self.execute(context)
 
     def execute(self, context):
+        rigs = {b.id_data for b in context.selected_pose_bones}
+
+        for rig in rigs:
+            Set.mode(context, rig, 'EDIT')
+        for bone in context.selected_bones:
+            self.edit_func(context, bone)
+
+        for rig in rigs:
+            Set.mode(context, rig, 'POSE')
         for bone in context.selected_pose_bones:
-            self.func(context, bone)
+            self.pose_func(context, bone)
+
+        def widget(ctrl_type, wgt='Sphere', global_size=6, scale=(1, 1, 1), slide=None):
+            from mathutils import Vector
+            bpy.ops.bonewidget.create_widget(
+                global_size=global_size,
+                slide=Vector(slide) if slide else Vector(),
+                scale=scale,
+                bones='%r' % self.bone_widgets[ctrl_type],
+                widget=wgt,
+            )
+        widget('mch', wgt='Box', global_size=1, scale=(0.75, 0.75, 1))
+        # widget('start', slide=(0, -0.5, 0))
+        widget('start', wgt='Blenrig - Box', global_size=3)
+        # widget('end', slide=(0, 0.5, 0))
+        widget('end', wgt='Blenrig - Box', global_size=3)
+        widget('in_out', global_size=7.5, slide=(0, 0.5, 0))
 
         return {'FINISHED'}
 
-    def func(self, context, bone):
-        rig = bone.id_data
-        ebones = rig.data.edit_bones
-        hide_bones = list()  # bones to queue for hiding
-
+    def do(self):
         if self.controls == 'ALL':
             do_mch = do_start_end = do_in_out = True
         elif self.controls == 'NO_MCH':
@@ -43,10 +68,28 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             do_mch = (self.controls == 'MCH')
             do_start_end = (self.controls == 'START/END')
             do_in_out = (self.controls == 'IN/OUT')
-            if do_in_out and (bone.bone.bbone_segments < 2):
-                # parenting to the bone will cause dependency loop, with drivers
-                # if the bone isn't using bbones
-                return
+        return (do_mch, do_start_end, do_in_out)
+
+    def get_name(self, bone, bbone):
+        bn = bone.name
+        (prefix, replace, suffix, number) = utils.flip_name(bn, only_split=True)
+
+        if bn == bn.title():
+            bbone = bbone.title()
+        elif bn == bn.upper():
+            bbone = bbone.upper()
+
+        if prefix and replace:
+            return f"{prefix[:-1]}.{bbone}{prefix[-1]}{replace}{suffix}{number}"
+        elif suffix or number:
+            return f"{prefix}{replace}{suffix}.{bbone}{number}"
+        else:
+            return f"{bn}.{bbone}"
+
+    def edit_func(self, context, bone):
+        rig = Get.rig(context, bone.id_data)
+        ebones = rig.data.edit_bones
+        (do_mch, do_start_end, do_in_out) = self.do()
 
         def get_disconnected_parent(bone):
             if ((bone is None) or (not bone.parent)):
@@ -57,21 +100,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             else:
                 return bone.parent
 
-        def get_name(bone, bbone):
-            bn = bone.name
-            (prefix, replace, suffix, number) = utils.flip_name(bn, only_split=True)
-
-            if bn == bn.title():
-                bbone = bbone.title()
-            elif bn == bn.upper():
-                bbone = bbone.upper()
-
-            if prefix and replace:
-                return f"{prefix[:-1]}.{bbone}{prefix[-1]}{replace}{suffix}{number}"
-            elif suffix or number:
-                return f"{prefix}{replace}{suffix}.{bbone}{number}"
-            else:
-                return f"{bn}.{bbone}"
+        get_name = self.get_name
 
         def reset(bone, edit_bone):
             attributes = [
@@ -84,8 +113,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                     setattr(bone, atr, getattr(edit_bone, atr))
 
         def edit(ebone, bbone_xz=1.0):
-            abone = ebones[bone.name]
-            reset(ebone, abone)
+            reset(ebone, bone)
             ebone.bbone_x *= bbone_xz
             ebone.bbone_z *= bbone_xz
             ebone.use_deform = False
@@ -93,67 +121,66 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         def edit_mch(ebone):
             edit(ebone, 1.25)
-            abone = ebones[bone.name]
-            ebone.parent = abone.parent
-            ebone.inherit_scale = abone.inherit_scale
-            # ebone.use_connect = abone.use_connect
-            # abone.use_connect = False
-            # abone.parent = ebone
-            # for cbone in abone.children:
+            ebone.parent = bone.parent
+            ebone.inherit_scale = bone.inherit_scale
+            # ebone.use_connect = bone.use_connect
+            # bone.use_connect = False
+            # bone.parent = ebone
+            # for cbone in bone.children:
                 # cbone.parent = ebone
 
         def edit_start(ebone):
             edit(ebone, 2.5)
-            bbone = ebones[bone.name]
             if do_mch:
-                ebone.parent = ebones[bone_mch.name]
+                ebone.parent = bone_mch
             else:
-                if bbone.parent and bbone.use_connect:
-                    ebone.parent = ebones.get(get_name(bbone.parent, 'bbone_end'))
+                if bone.parent and bone.use_connect:
+                    ebone.parent = ebones.get(get_name(bone.parent, 'bbone_end'))
                 if ebone.parent:
-                    hide_bones.append(ebone.name)
+                    self.hide_bones.append(ebone.name)
+                    ebone.hide = True
                 else:
-                    ebone.parent = get_disconnected_parent(bbone)
+                    ebone.parent = get_disconnected_parent(bone)
                 if not do_in_out:
-                    cbone = ebones.get(get_name(bbone, 'bbone_in'))
+                    cbone = ebones.get(get_name(bone, 'bbone_in'))
                     if cbone:
                         cbone.parent = ebone
             ebone.tail = utils.lerp(ebone.head, ebone.tail, 0.1)
 
         def edit_head(ebone):
             edit(ebone, 0.5)
-            ebone.parent = ebones[bone_start.name]
+            ebone.parent = bone_start
             ebone.tail = utils.lerp(ebone.head, ebone.tail, 0.1)
             ebone.translate(ebone.head - ebone.tail)
-            ebones[bone.name].bbone_custom_handle_start = ebone
+            bone.bbone_custom_handle_start = ebone
 
         def edit_end(ebone):
             edit(ebone, 2.5)
-            bbone = ebones[bone.name]
             if do_mch:
-                ebone.parent = ebones[bone_mch.name]
+                ebone.parent = bone_mch
             else:
-                ebone.parent = get_disconnected_parent(bbone)
+                ebone.parent = get_disconnected_parent(bone)
                 if not do_in_out:
-                    cbone = ebones.get(get_name(bbone, 'bbone_out'))
+                    cbone = ebones.get(get_name(bone, 'bbone_out'))
                     if cbone:
                         cbone.parent = ebone
-            for cbone in bbone.children:
+            for cbone in bone.children:
                 if cbone.use_connect:
                     cbone_start = ebones.get(get_name(cbone, 'bbone_start'))
                     if cbone_start:
                         cbone_start.parent = ebone
-                        hide_bones.append(cbone_start.name)
+                        self.hide_bones.append(cbone_start.name)
+                        cbone_start.hide = True
             ebone.head = utils.lerp(ebone.head, ebone.tail, 0.9)
             ebone.translate(ebone.tail - ebone.head)
-            bbone.bbone_custom_handle_end = ebone
+            bone.bbone_custom_handle_end = ebone
 
         def edit_in(ebone):
             edit(ebone, 2.0)
             if do_start_end:
-                ebone.parent = ebones[bone_start.name]
+                ebone.parent = bone_start
             else:
-                ebone.parent = ebones.get(get_name(bone, 'bbone_start'), ebones[bone.name])
+                ebone.parent = ebones.get(get_name(bone, 'bbone_start'), bone)
             (head, tail) = (ebone.head.copy(), ebone.tail.copy())
             ebone.head = utils.lerp(head, tail, 0.1)
             ebone.tail = utils.lerp(head, tail, 0.2)
@@ -161,14 +188,41 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         def edit_out(ebone):
             edit(ebone, 2.0)
             if do_start_end:
-                ebone.parent = ebones[bone_end.name]
+                ebone.parent = bone_end
             else:
-                ebone.parent = ebones.get(get_name(bone, 'bbone_end'), ebones[bone.name])
+                ebone.parent = ebones.get(get_name(bone, 'bbone_end'), bone)
             (head, tail) = (ebone.head.copy(), ebone.tail.copy())
             ebone.tail = utils.lerp(head, tail, 0.8)
             ebone.head = utils.lerp(head, tail, 0.9)
-            ebone.align_roll(-ebones[bone.name].z_axis)
+            ebone.align_roll(-bone.z_axis)
                 # This bone is reversed, so the the roll needs to be flipped
+
+        if (do_in_out and (not (do_mch or do_start_end)) and (bone.bbone_segments < 2)):
+            # parenting to the bone will cause dependency loop, with drivers
+            # if the bone isn't using bbones
+
+            if not (ebones.get(get_name(bone, 'bbone_start'), ebones.get(get_name(bone, 'bbone_end')))):
+                return
+
+        if do_start_end:
+            bone.bbone_handle_type_start = bone.bbone_handle_type_end = 'ABSOLUTE'
+
+        args = dict(context=context, armature=rig, overwrite=True)
+        if do_mch:
+            bone_mch = New.bone(**args, name=get_name(bone, 'bbone'), edit=edit_mch)
+        if do_start_end:
+            bone_start = New.bone(**args, name=get_name(bone, 'bbone_start'), edit=edit_start)
+            bone_end = New.bone(**args, name=get_name(bone, 'bbone_end'), edit=edit_end)
+            bone_head = New.bone(**args, name=get_name(bone, 'bbone_head'), edit=edit_head)
+        if do_in_out:
+            bone_in = New.bone(**args, name=get_name(bone, 'bbone_in'), edit=edit_in)
+            bone_out = New.bone(**args, name=get_name(bone, 'bbone_out'), edit=edit_out)
+
+    def pose_func(self, context, bone):
+        rig = bone.id_data
+        bones = rig.pose.bones
+
+        (do_mch, do_start_end, do_in_out) = self.do()
 
         def add_driver(pbone, path, transform_type, name="var", expression="", frames=[]):
             if Get.driver(pbone, path):
@@ -209,6 +263,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
             return Driver
 
+        get_name = self.get_name
+
         def pose(pbone):
             pbone.rotation_mode = 'XYZ'
 
@@ -224,7 +280,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             pbone.lock_rotations_4d = bone.lock_rotations_4d
             pbone.lock_scale = (True, False, True)
             pbone.custom_shape_transform = bone
-            widget(pbone, wgt='Box', global_size=1, scale=(0.75, 0.75, 1))
+            if not pbone.custom_shape:
+                self.bone_widgets['mch'].append(pbone)
             con = bone.constraints.new('COPY_ROTATION')
             con.target = rig
             con.subtarget = pbone.name
@@ -236,8 +293,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         def pose_start(pbone):
             pose(pbone)
             pbone.lock_scale = (True, True, True)
-            # widget(pbone, slide=(0, -0.5, 0))
-            widget(pbone, wgt='Blenrig - Box', global_size=3)
+            if not pbone.custom_shape:
+                self.bone_widgets['start'].append(pbone)
             if not (bone.parent and bone.bone.use_connect):
                 con = bone.constraints.new('COPY_LOCATION')
                 con.target = rig
@@ -257,8 +314,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         def pose_end(pbone):
             pose(pbone)
             pbone.lock_scale = (True, True, True)
-            # widget(pbone, slide=(0, 0.5, 0))
-            widget(pbone, wgt='Blenrig - Box', global_size=3)
+            if not pbone.custom_shape:
+                self.bone_widgets['end'].append(pbone)
             con = bone.constraints.new('STRETCH_TO')
             con.target = rig
             con.subtarget = pbone.name
@@ -267,7 +324,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             pose(pbone)
             pbone.lock_location = (True, False, True)
             pbone.lock_scale = (False, True, False)
-            widget(pbone, global_size=7.5, slide=(0, 0.5, 0))
+            if not pbone.custom_shape:
+                self.bone_widgets['in_out'].append(pbone)
             length = bone.bone.length
 
             # add_driver(pbone, f'bbone_curve{in_out}x', 'ROT_Z', "rotation_Z", '-{name} * %s' % length)
@@ -288,16 +346,6 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             # add_driver(pbone, f'bbone_ease{in_out}', 'SCALE_Y', "scale_y", frames=[(1, 0), (2, 1)])
             add_driver(pbone, f'bbone_ease{in_out}', 'LOC_Y', "location_y", frames=[(0, 0), (length, 1)])
 
-        def widget(pbone, wgt='Sphere', global_size=6, scale=(1, 1, 1), slide=None):
-            from mathutils import Vector
-            bpy.ops.bonewidget.create_widget(
-                global_size=global_size,
-                slide=Vector(slide) if slide else Vector(),
-                scale=scale,
-                bones='[%r]' % pbone,
-                widget=wgt,
-            )
-
         def set_bone_groups():
             if do_mch:
                 bg = Get.bone_group(rig, "BBone FK")
@@ -314,27 +362,30 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 if not bg:
                     bg = New.bone_group(rig, "BBone Curve", True)
                 bone_in.bone_group = bone_out.bone_group = bg
-            if hide_bones:
+            if self.hide_bones:
                 bg = Get.bone_group(rig, "BBone Stretch [Hidden]")
                 if not bg:
                     bg = New.bone_group(rig, "BBone Stretch [Hidden]", 'THEME20')
-                for name in hide_bones:
+                for name in self.hide_bones:
                     rig.pose.bones[name].bone_group = bg
                     rig.data.bones[name].hide = True
 
-        if do_start_end:
-            bone.bone.bbone_handle_type_start = bone.bone.bbone_handle_type_end = 'ABSOLUTE'
+        if (do_in_out and (not (do_mch or do_start_end)) and (bone.bone.bbone_segments < 2)):
+            # parenting to the bone will cause dependency loop, with drivers
+            # if the bone isn't using bbones
 
-        args = dict(context=context, armature=rig, overwrite=True)
+            if not (bones.get(get_name(bone, 'bbone_start'), bones.get(get_name(bone, 'bbone_end')))):
+                return
+
         if do_mch:
-            bone_mch = New.bone(**args, name=get_name(bone, 'bbone'), edit=edit_mch)
+            bone_mch = bones[get_name(bone, 'bbone')]
         if do_start_end:
-            bone_start = New.bone(**args, name=get_name(bone, 'bbone_start'), edit=edit_start)
-            bone_end = New.bone(**args, name=get_name(bone, 'bbone_end'), edit=edit_end)
-            bone_head = New.bone(**args, name=get_name(bone, 'bbone_head'), edit=edit_head)
+            bone_start = bones[get_name(bone, 'bbone_start')]
+            bone_end = bones[get_name(bone, 'bbone_end')]
+            bone_head = bones[get_name(bone, 'bbone_head')]
         if do_in_out:
-            bone_in = New.bone(**args, name=get_name(bone, 'bbone_in'), edit=edit_in)
-            bone_out = New.bone(**args, name=get_name(bone, 'bbone_out'), edit=edit_out)
+            bone_in = bones[get_name(bone, 'bbone_in')]
+            bone_out = bones[get_name(bone, 'bbone_out')]
 
         if do_mch:
             pose_mch(bone_mch)
