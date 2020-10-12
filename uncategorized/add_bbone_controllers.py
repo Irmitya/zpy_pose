@@ -23,6 +23,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
     def __init__(self):
         self.hide_bones = list()  # bones to queue for hiding
         self.bone_widgets = {'mch': [], 'start': [], 'end': [], 'head': [], 'in_out': []}
+        self.warning = ""
+        self.warnings = 0
 
     def invoke(self, context, event):
         return self.execute(context)
@@ -34,6 +36,9 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             Set.mode(context, rig, 'EDIT')
         for bone in context.selected_bones:
             self.edit_func(context, bone)
+
+        if self.warning:
+            self.report({'WARNING'}, self.warning)
 
         for rig in rigs:
             Set.mode(context, rig, 'POSE')
@@ -202,7 +207,18 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             # if the bone isn't using bbones
 
             if not (ebones.get(get_name(bone, 'bbone_start'), ebones.get(get_name(bone, 'bbone_end')))):
-                return
+                if self.warning:
+                    self.warning = (
+                        f"{bone.name} does not have Bendy Bone Segments;"
+                        " this will cause a dependency cycle-loop with its drivers/controllers"
+                    )
+                else:
+                    self.warning = (
+                        f"{self.warnings + 1} bones don't have Bendy Bone Segments;"
+                        " this will cause a dependency cycle-loop with their drivers/controllers"
+                    )
+                self.warnings += 1
+
 
         if do_start_end:
             bone.bbone_handle_type_start = bone.bbone_handle_type_end = 'ABSOLUTE'
@@ -369,13 +385,6 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 for name in self.hide_bones:
                     rig.pose.bones[name].bone_group = bg
                     rig.data.bones[name].hide = True
-
-        if (do_in_out and (not (do_mch or do_start_end)) and (bone.bone.bbone_segments < 2)):
-            # parenting to the bone will cause dependency loop, with drivers
-            # if the bone isn't using bbones
-
-            if not (bones.get(get_name(bone, 'bbone_start'), bones.get(get_name(bone, 'bbone_end')))):
-                return
 
         if do_mch:
             bone_mch = bones[get_name(bone, 'bbone')]
