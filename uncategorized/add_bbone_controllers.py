@@ -145,7 +145,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                     self.hide_bones.append(ebone.name)
                     ebone.hide = True
                 else:
-                    ebone.parent = get_disconnected_parent(bone)
+                    ebone.parent = bone.parent
                 if not do_in_out:
                     cbone = ebones.get(get_name(bone, 'bbone_in'))
                     if cbone:
