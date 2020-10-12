@@ -208,12 +208,13 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             pbone.lock_scale = (True, True, True)
             # widget(pbone, slide=(0, -0.5, 0))
             widget(pbone, wgt='Blenrig - Box', global_size=3)
-            con = bone.constraints.new('COPY_LOCATION')
-            con.target = rig
-            con.subtarget = pbone.name
-            # Using offset will cause the Stretch TO constraint to fail if the bone's parent is scaled.
-            # con.use_offset = True
-            # con.target_space = con.owner_space = 'LOCAL_WITH_PARENT'
+            if not (bone.parent and bone.bone.use_connect):
+                con = bone.constraints.new('COPY_LOCATION')
+                con.target = rig
+                con.subtarget = pbone.name
+                # Using offset will cause the Stretch TO constraint to fail if the bone's parent is scaled.
+                # con.use_offset = True
+                # con.target_space = con.owner_space = 'LOCAL_WITH_PARENT'
 
         def pose_head(pbone):
             pose(pbone)
