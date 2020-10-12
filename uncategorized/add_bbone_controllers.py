@@ -15,9 +15,6 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             return txt + "(Only add 2 end bones to control the bbone properties with drivers)"
         elif properties.controls == 'START/END':
             return txt + "(Only add 2 stretch bones as the bbone's custom handles)"
-        else:
-            return txt + "Note: intended for disconnected bones"\
-                ".\nResults in bone chains are functional but not as good"
 
     @classmethod
     def poll(cls, context):
@@ -360,13 +357,14 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         ],
         name="Mode",
         description="Control setup to add for controlling the selected bones",
-        default='ALL',
+        default='NO_MCH',
         options={'SKIP_SAVE'},
     )
 
 
 def draw_menu(self, context):
-    self.layout.operator('zpy.add_bbone_controllers', icon='IPO_BEZIER')
-    self.layout.operator('zpy.add_bbone_controllers', text="    (in/out)", icon='IPO_BEZIER').controls = 'IN/OUT'
-    self.layout.operator('zpy.add_bbone_controllers', text="    (start/end)", icon='IPO_BEZIER').controls = 'START/END'
-    self.layout.operator('zpy.add_bbone_controllers', text="    (no MCH)", icon='IPO_BEZIER').controls = 'NO_MCH'
+    layout = self.layout
+    layout.operator('zpy.add_bbone_controllers', icon='IPO_BEZIER')
+    layout.operator('zpy.add_bbone_controllers', text="    (start/end)", icon='IPO_BEZIER').controls = 'START/END'
+    layout.operator('zpy.add_bbone_controllers', text="    (in/out)", icon='IPO_BEZIER').controls = 'IN/OUT'
+    layout.operator('zpy.add_bbone_controllers', text="    (with FK)", icon='IPO_BEZIER').controls = 'ALL'
