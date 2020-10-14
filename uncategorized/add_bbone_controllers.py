@@ -320,9 +320,9 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 # add_driver(pbone, 'bbone_rollout', 'ROT_Y', "rotation_y", '-{name}')
             # add_driver(pbone, f'bbone_ease{in_out}', 'SCALE_Y', "scale_y", '{name} - 1')
 
-            add_driver(pbone, f'bbone_curve{in_out}x', 'ROT_Z', "rotation_Z", frames=[(0, 0), (-1, length)])
-            add_driver(pbone, f'bbone_curve{in_out}y', 'ROT_X', "rotation_x", frames=[(0, 0), ((1, -1)[in_out == 'out'], length)])
-            add_driver(pbone, f'bbone_roll{in_out}', 'ROT_Y', "rotation_y", frames=[(0, 0), ((1, -1)[in_out == 'out'], 1)])
+            add_driver(pbone, f'bbone_curve{in_out}x', 'ROT_Z', "rotation_Z", frames=[(0, 0), (-1, length)], target_path='rotation_euler.z')
+            add_driver(pbone, f'bbone_curve{in_out}y', 'ROT_X', "rotation_x", frames=[(0, 0), ((1, -1)[in_out == 'out'], length)], target_path='rotation_euler.x')
+            add_driver(pbone, f'bbone_roll{in_out}', 'ROT_Y', "rotation_y", frames=[(0, 0), ((1, -1)[in_out == 'out'], 1)], target_path='rotation_euler.y')
 
             add_driver(pbone, f'bbone_scale{in_out}x', 'SCALE_X', "scale_X")
             add_driver(pbone, f'bbone_scale{in_out}y', 'SCALE_Z', "scale_Z")
