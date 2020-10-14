@@ -240,44 +240,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         (do_mch, do_start_end, do_in_out) = self.do()
 
-        def add_driver(pbone, path, transform_type, name="var", expression="", frames=[]):
-            if Get.driver(pbone, path):
-                bone.driver_remove(path)
-
-            Driver = bone.driver_add(path)
-
-            while Driver.keyframe_points:
-                Driver.keyframe_points.remove(Driver.keyframe_points[0])
-
-            if frames:
-                Driver.extrapolation = 'LINEAR'
-                while Driver.modifiers:
-                    Driver.modifiers.remove(Driver.modifiers[0])
-                Driver.keyframe_points.add(len(frames))
-                for key, co in zip(Driver.keyframe_points[:], frames):
-                    key.interpolation = 'LINEAR'
-                    key.co = co
-
-            driver = Driver.driver
-            if expression:
-                driver.expression = expression.replace('{name}', name)
-                driver.type = 'SCRIPTED'
-            else:
-                driver.expression = name
-                driver.type = 'AVERAGE'
-            while driver.variables:
-                driver.variables.remove(driver.variables[0])
-            var = driver.variables.new()
-            var.name = name
-            var.type = 'TRANSFORMS'
-            target = var.targets[0]
-            target.id = rig
-            target.bone_target = pbone.name
-            target.rotation_mode = 'AUTO'
-            target.transform_space = 'LOCAL_SPACE'
-            target.transform_type = transform_type
-
-            return Driver
+        def add_driver(pbone, path, transform_type, name="var", **kargs):
+            return New.driver(bone, path, target=pbone, transform_type=transform_type, name=name, **kargs)
 
         get_name = self.get_name
 
