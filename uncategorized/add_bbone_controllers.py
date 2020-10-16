@@ -104,7 +104,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             bbone = bbone.upper()
 
         if prefix and replace:
-            return f"{prefix[:-1]}.{bbone}{prefix[-1]}{replace}{suffix}{number}"
+            return f"{prefix}.{bbone}{replace}{suffix}{number}"
         elif (suffix or number) and (bn != utils.flip_name(bn)):
             return f"{prefix}{replace}{suffix}.{bbone}{number}"
         else:
