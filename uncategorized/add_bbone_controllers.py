@@ -398,7 +398,10 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                     bg = New.bone_group(rig, "BBone Stretch [Hidden]", 'THEME20')
                 for name in self.hide_bones[rig]:
                     rig.pose.bones[name].bone_group = bg
-                    rig.data.bones[name].hide = True
+
+        def post_pose():
+            for name in self.hide_bones[rig]:
+                rig.data.bones[name].hide = True
 
         if do_mch:
             bone_mch = bones[get_name(bone, 'bbone')]
@@ -420,6 +423,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             pose_in_out(bone_in, 'in')
             pose_in_out(bone_out, 'out')
         set_bone_groups()
+        post_pose()
 
     controls: bpy.props.EnumProperty(
         items=[
