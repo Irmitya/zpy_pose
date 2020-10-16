@@ -21,7 +21,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         return context.selected_pose_bones
 
     def __init__(self):
-        self.hide_bones = list()  # bones to queue for hiding
+        self.hide_bones = dict()  # bones to queue for hiding
         self.bone_widgets = {'mch': [], 'start': [], 'end': [], 'head': [], 'in_out': []}
         self.warning = ""
         self.warnings = 0
@@ -49,6 +49,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         for rig in rigs:
             Set.mode(context, rig, 'EDIT')
+            self.hide_bones[rig] = list()
         for (rig, bones) in rigs.items():
             for bone in bones:
                 self.edit_func(context, rig.data.edit_bones[bone.name])
@@ -161,7 +162,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 if Is.connected(bone):
                     ebone.parent = ebones.get(get_name(bone.parent, 'bbone_end'))
                 if ebone.parent:
-                    self.hide_bones.append(ebone.name)
+                    self.hide_bones[rig].append(ebone.name)
                     ebone.hide = True
                 else:
                     ebone.parent = bone.parent
@@ -175,7 +176,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 cbone_end = ebones.get(get_name(cbone, 'bbone_end'))
                 if cbone_end:
                     cbone_end.parent = ebone
-                    self.hide_bones.append(cbone_end.name)
+                    self.hide_bones[rig].append(cbone_end.name)
                     cbone_end.hide = True
             ebone.tail = utils.lerp(ebone.head, ebone.tail, 0.1)
 
@@ -185,7 +186,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             ebone.tail = utils.lerp(ebone.head, ebone.tail, 0.1)
             ebone.translate(ebone.head - ebone.tail)
             bone.bbone_custom_handle_start = ebone
-            self.hide_bones.append(ebone.name)
+            self.hide_bones[rig].append(ebone.name)
 
         def edit_end(ebone):
             edit(ebone, 2.5)
@@ -198,7 +199,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                     tobone_name = get_name(tbone, 'bbone_start')
                     tobone = ebones.get(tobone_name)
                     if tobone or ((tbone, rig) in self.selected):
-                        self.hide_bones.append(ebone.name)
+                        self.hide_bones[rig].append(ebone.name)
                         ebone.hide = True
                         if tobone:
                             ebone.parent = tobone
@@ -218,7 +219,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                     cbone_start = ebones.get(get_name(cbone, 'bbone_start'))
                     if cbone_start:
                         cbone_start.parent = ebone
-                        self.hide_bones.append(cbone_start.name)
+                        self.hide_bones[rig].append(cbone_start.name)
                         cbone_start.hide = True
             ebone.head = utils.lerp(ebone.head, ebone.tail, 0.9)
             ebone.translate(ebone.tail - ebone.head)
@@ -262,7 +263,6 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                         " this will cause a dependency cycle-loop with their drivers/controllers"
                     )
                 self.warnings += 1
-
 
         if do_start_end:
             bone.bbone_handle_type_start = bone.bbone_handle_type_end = 'ABSOLUTE'
@@ -389,11 +389,11 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 if not bg:
                     bg = New.bone_group(rig, "BBone Curve", True)
                 bone_in.bone_group = bone_out.bone_group = bg
-            if self.hide_bones:
+            if self.hide_bones.get(rig):
                 bg = Get.bone_group(rig, "BBone Stretch [Hidden]")
                 if not bg:
                     bg = New.bone_group(rig, "BBone Stretch [Hidden]", 'THEME20')
-                for name in self.hide_bones:
+                for name in self.hide_bones[rig]:
                     rig.pose.bones[name].bone_group = bg
                     rig.data.bones[name].hide = True
 
