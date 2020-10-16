@@ -1,5 +1,5 @@
 import bpy
-from zpy import Get, New, Set, utils
+from zpy import Get, Is, New, Set, utils
 
 
 class BBONE_OT_add_controllers(bpy.types.Operator):
@@ -99,7 +99,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         def get_disconnected_parent(bone):
             if ((bone is None) or (not bone.parent)):
                 return
-            elif bone.use_connect:
+            elif Is.connected(bone):
                 # Keep going up the chain until it finds a disconnected bone
                 return get_disconnected_parent(bone.parent)
             else:
@@ -139,7 +139,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             if do_mch:
                 ebone.parent = bone_mch
             else:
-                if bone.parent and bone.use_connect:
+                if Is.connected(bone):
                     ebone.parent = ebones.get(get_name(bone.parent, 'bbone_end'))
                 if ebone.parent:
                     self.hide_bones.append(ebone.name)
@@ -171,7 +171,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                     if cbone:
                         cbone.parent = ebone
             for cbone in bone.children:
-                if cbone.use_connect:
+                if Is.connected(cbone):
                     cbone_start = ebones.get(get_name(cbone, 'bbone_start'))
                     if cbone_start:
                         cbone_start.parent = ebone
@@ -279,7 +279,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             pbone.lock_scale = (True, True, True)
             if not pbone.custom_shape:
                 self.bone_widgets['start'].append(pbone)
-            if not (bone.parent and bone.bone.use_connect):
+            if not Is.connected(bone):
                 con = bone.constraints.new('COPY_LOCATION')
                 con.target = rig
                 con.subtarget = pbone.name
