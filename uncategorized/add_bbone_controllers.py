@@ -25,6 +25,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         self.bone_widgets = {'mch': [], 'start': [], 'end': [], 'head': [], 'in_out': []}
         self.warning = ""
         self.warnings = 0
+        self.delayed_parenting = list()  # bones to queue for parenting (because of order of creation)
 
     def invoke(self, context, event):
         return self.execute(context)
@@ -36,6 +37,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             Set.mode(context, rig, 'EDIT')
         for bone in context.selected_bones:
             self.edit_func(context, bone)
+        for (ebones, ebone, tbone) in self.delayed_parenting:
+            ebones[ebone].parent = ebones[tbone]
 
         if self.warning:
             self.report({'WARNING'}, self.warning)
@@ -150,6 +153,14 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                     cbone = ebones.get(get_name(bone, 'bbone_in'))
                     if cbone:
                         cbone.parent = ebone
+            for cbone in bone.children_recursive:
+                if (bone.head != cbone.tail):
+                    continue
+                cbone_end = ebones.get(get_name(cbone, 'bbone_end'))
+                if cbone_end:
+                    cbone_end.parent = ebone
+                    self.hide_bones.append(cbone_end.name)
+                    cbone_end.hide = True
             ebone.tail = utils.lerp(ebone.head, ebone.tail, 0.1)
 
         def edit_head(ebone):
@@ -165,7 +176,23 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             if do_mch:
                 ebone.parent = bone_mch
             else:
-                ebone.parent = get_disconnected_parent(bone)
+                for tbone in bone.parent_recursive:
+                    if (tbone.head != bone.tail):
+                        continue
+                    tobone_name = get_name(tbone, 'bbone_start')
+                    tobone = ebones.get(tobone_name)
+                    if tobone or (tbone in context.selected_bones):
+                        self.hide_bones.append(ebone.name)
+                        ebone.hide = True
+                        if tobone:
+                            ebone.parent = tobone
+                        else:
+                            self.delayed_parenting.append(ebones, ebone.name, tobone_name)
+                    else:
+                        ebone.parent = tbone
+                    break
+                else:
+                    ebone.parent = get_disconnected_parent(bone)
                 if not do_in_out:
                     cbone = ebones.get(get_name(bone, 'bbone_out'))
                     if cbone:
