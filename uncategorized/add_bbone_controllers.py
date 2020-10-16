@@ -158,6 +158,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             ebone.tail = utils.lerp(ebone.head, ebone.tail, 0.1)
             ebone.translate(ebone.head - ebone.tail)
             bone.bbone_custom_handle_start = ebone
+            self.hide_bones.append(ebone.name)
 
         def edit_end(ebone):
             edit(ebone, 2.5)
