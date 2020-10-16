@@ -124,8 +124,9 @@ class POSE_OT_add_bone(bpy.types.Operator):
         root = self.get_root(rig)
         prev_bones = self.get_prev_bones(rig)
         pose_bones = []
+        flip_bones = []
 
-        for bone_name in prev_bones:
+        def add_bone(bone_name):
             prev = rig.data.edit_bones[bone_name]
 
             bone = rig.data.edit_bones.new(prev.name)
@@ -135,13 +136,24 @@ class POSE_OT_add_bone(bpy.types.Operator):
             bone.parent = prev.parent
             bone.use_deform = prev.use_deform
 
+        for bone_name in prev_bones:
+            add_bone(bone_name)
+
+            if rig.pose.use_mirror_x:
+                flip = utils.flip_name(bone_name)
+                if (flip in rig.data.edit_bones) and (flip not in (*prev_bones, *(p for (b, p) in pose_bones))):
+                    # Mirrored bone exists but not selected
+                    add_bone(flip)
+                    flip_bones.append(flip)
+
         # Switch back to Pose mode and setup pose bones
         Set.mode(context, rig, 'POSE')
 
         for (bone, prev) in pose_bones:
             bone = rig.pose.bones[bone]
             prev = rig.pose.bones[prev]
-            rig.data.bones.active = bone.bone
+            if (prev.name not in flip_bones):
+                rig.data.bones.active = bone.bone
             bone.custom_shape = prev.custom_shape
             bone.custom_shape_transform = prev.custom_shape_transform
             bone.bone.show_wire = prev.bone.show_wire
