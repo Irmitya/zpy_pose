@@ -26,17 +26,32 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         self.warning = ""
         self.warnings = 0
         self.delayed_parenting = list()  # bones to queue for parenting (because of order of creation)
+        self.selected = list()  # remember selected and non-selected mirror bones
 
     def invoke(self, context, event):
         return self.execute(context)
 
     def execute(self, context):
-        rigs = {b.id_data for b in context.selected_pose_bones}
+        rigs = dict()
+        for bone in context.selected_pose_bones:
+            rig = bone.id_data
+            if rig not in rigs:
+                rigs[rig] = list()
+
+            if (bone not in rigs[rig]):
+                rigs[rig].append(bone)
+                self.selected.append((bone, rig))
+                if (rig.pose.use_mirror_x or rig.data.use_mirror_x):
+                    mirror = Get.mirror_bone(bone)
+                    if (mirror not in rigs[rig]):
+                        rigs[rig].append(mirror)
+                        self.selected.append((mirror, rig))
 
         for rig in rigs:
             Set.mode(context, rig, 'EDIT')
-        for bone in context.selected_bones:
-            self.edit_func(context, bone)
+        for (rig, bones) in rigs.items():
+            for bone in bones:
+                self.edit_func(context, rig.data.edit_bones[bone.name])
         for (ebones, ebone, tbone) in self.delayed_parenting:
             ebones[ebone].parent = ebones[tbone]
 
@@ -45,8 +60,9 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         for rig in rigs:
             Set.mode(context, rig, 'POSE')
-        for bone in context.selected_pose_bones:
-            self.pose_func(context, bone)
+        for (rig, bones) in rigs.items():
+            for bone in bones:
+                self.pose_func(context, rig.pose.bones[bone.name])
 
         def widget(ctrl_type, wgt='Sphere', global_size=6, scale=(1, 1, 1), slide=None):
             from mathutils import Vector
@@ -181,7 +197,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                         continue
                     tobone_name = get_name(tbone, 'bbone_start')
                     tobone = ebones.get(tobone_name)
-                    if tobone or (tbone in context.selected_bones):
+                    if tobone or ((tbone, rig) in self.selected):
                         self.hide_bones.append(ebone.name)
                         ebone.hide = True
                         if tobone:
