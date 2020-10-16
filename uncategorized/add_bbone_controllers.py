@@ -116,12 +116,15 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         ebones = rig.data.edit_bones
         (do_mch, do_start_end, do_in_out) = self.do()
 
-        def get_disconnected_parent(bone):
+        def get_disconnected_parent(bone, first_loop=True):
             if ((bone is None) or (not bone.parent)):
-                return
+                if first_loop:
+                    return
+                else:
+                    return bone
             elif Is.connected(bone):
                 # Keep going up the chain until it finds a disconnected bone
-                return get_disconnected_parent(bone.parent)
+                return get_disconnected_parent(bone.parent, False)
             else:
                 return bone.parent
 
