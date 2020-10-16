@@ -43,7 +43,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 self.selected.append((bone, rig))
                 if (rig.pose.use_mirror_x or rig.data.use_mirror_x):
                     mirror = Get.mirror_bone(bone)
-                    if (mirror not in rigs[rig]):
+                    if mirror and (mirror not in rigs[rig]):
                         rigs[rig].append(mirror)
                         self.selected.append((mirror, rig))
 
