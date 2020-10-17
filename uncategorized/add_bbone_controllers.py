@@ -27,6 +27,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         self.warnings = 0
         self.delayed_parenting = list()  # bones to queue for parenting (because of order of creation)
         self.selected = list()  # remember selected and non-selected mirror bones
+        self.center_bones = dict()
 
     def invoke(self, context, event):
         return self.execute(context)
@@ -50,11 +51,15 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         for rig in rigs:
             Set.mode(context, rig, 'EDIT')
             self.hide_bones[rig] = list()
+            self.center_bones[rig] = list()
         for (rig, bones) in rigs.items():
             for bone in bones:
                 self.edit_func(context, rig.data.edit_bones[bone.name])
         for (ebones, ebone, tbone) in self.delayed_parenting:
             ebones[ebone].parent = ebones[tbone]
+        (do_mch, do_start_end, do_in_out) = self.do()
+        if do_start_end:
+            self.edit_mirror_center(context)
 
         if self.warning:
             self.report({'WARNING'}, self.warning)
@@ -281,6 +286,64 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             bone_in = New.bone(**args, name=get_name(bone, 'bbone_in'), edit=edit_in)
             bone_out = New.bone(**args, name=get_name(bone, 'bbone_out'), edit=edit_out)
 
+    def edit_mirror_center(self, context):
+        def get_bones(rig, bbone):
+            ebones = rig.data.edit_bones
+            ebone = ebones.get(self.get_name(bone, bbone))
+            mebone = Get.mirror_bone(ebone)
+            return (ebone, mebone)
+
+        found = []
+        for (bone, rig) in self.selected:
+            mbone = Get.mirror_bone(bone)
+            if mbone in found:
+                continue
+            else:
+                found.append(bone)
+
+            (ebone, mebone) = get_bones(rig, 'bbone_start')
+            if not (ebone and mebone):
+                continue
+
+            if (ebone.parent == mebone.parent):
+                # Connect heads
+                if Is.connected(bone):
+                    # The parent will already handle the symmetry
+                    continue
+                parent = ebone.parent
+            else:
+                (ebone, mebone) = get_bones(rig, 'bbone_end')
+                if not (ebone and mebone):
+                    continue
+
+                # Find a mutual parent between the two bones
+                parent = [*(x for x in ebone.parent_recursive if x in mebone.parent_recursive), None][0]
+
+            distance = abs(sum(ebone.head) - sum(mebone.head)) / 2
+            margin = utils.lerp(bone.bone.length, mbone.bone.length, 0.5) / bone.bone.bbone_segments
+            if distance >= margin:
+                # Bones too far apart
+                continue
+
+            (prefix, replace, suffix, number) = utils.flip_name(bone.name, only_split=True)
+            center_name = prefix + suffix + number
+            center = New.bone(context, rig, name=center_name, overwrite=True)
+
+            attributes = [
+                'head', 'head_radius', 'tail', 'tail_radius',
+                'roll', 'matrix', 'layers', 'bbone_x', 'bbone_z',
+                ]
+            for atr in attributes:
+                if hasattr(center, atr):
+                    setattr(center, atr, utils.lerp(getattr(ebone, atr), getattr(mebone, atr), 0.5))
+            center.use_deform = False
+            center.inherit_scale = 'NONE'
+            center.parent = parent
+
+            ebone.parent = mebone.parent = center
+            self.hide_bones[rig].extend((ebone.name, mebone.name))
+            self.center_bones[rig].append(center.name)
+
     def pose_func(self, context, bone):
         rig = bone.id_data
         bones = rig.pose.bones
@@ -387,6 +450,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 if not bg:
                     bg = New.bone_group(rig, "BBone Stretch", True)
                 bone_start.bone_group = bone_end.bone_group = bg
+                for name in self.center_bones[rig]:
+                    rig.pose.bones[name].bone_group = bg
             if do_in_out:
                 bg = Get.bone_group(rig, "BBone Curve")
                 if not bg:
@@ -400,6 +465,11 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                     rig.pose.bones[name].bone_group = bg
 
         def post_pose():
+            for name in self.center_bones[rig]:
+                pbone = rig.pose.bones[name]
+                pose(pbone)
+                if not pbone.custom_shape:
+                    self.bone_widgets['start'].append(pbone)
             for name in self.hide_bones[rig]:
                 rig.data.bones[name].hide = True
 
