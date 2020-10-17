@@ -151,6 +151,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             ebone.bbone_z *= bbone_xz
             ebone.use_deform = False
             ebone.inherit_scale = 'NONE'
+            ebone.hide = True
 
         def edit_mch(ebone):
             edit(ebone, 1.25)
@@ -339,6 +340,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             center.use_deform = False
             center.inherit_scale = 'NONE'
             center.parent = parent
+            center.hide = True
 
             ebone.parent = mebone.parent = center
             self.hide_bones[rig].extend((ebone.name, mebone.name))
@@ -357,6 +359,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         def pose(pbone):
             pbone.rotation_mode = 'XYZ'
+            pbone.bone.hide = False
 
         def pose_mch(pbone):
             Set.select(bone, False)
