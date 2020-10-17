@@ -296,6 +296,8 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         found = []
         for (bone, rig) in self.selected:
+            if not (rig.pose.use_mirror_x or rig.data.use_mirror_x):
+                continue
             mbone = Get.mirror_bone(bone)
             if mbone in found:
                 continue
