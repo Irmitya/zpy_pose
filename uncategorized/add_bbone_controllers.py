@@ -399,9 +399,6 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         def pose_head(pbone):
             pose(pbone)
             pbone.bone.hide = True
-            pbone.lock_location = (True, True, True)
-            pbone.lock_rotation = (True, True, True)
-            pbone.lock_rotation_w = True
             pbone.lock_scale = (True, True, True)
 
         def pose_end(pbone):
