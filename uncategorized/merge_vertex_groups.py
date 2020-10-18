@@ -135,9 +135,9 @@ class SUBTRACT_OT_vgroups(Operator):
         for ob in objs:
             for b in selected_bones:
                 if self.target == 'selected':
-                    self.vgsub(ob, active_bone.name, b.name)
+                    utils.subtract_vertex_groups(ob, active_bone.name, b.name)
                 elif self.target == 'active':
-                    self.vgsub(ob, b.name, active_bone.name)
+                    utils.subtract_vertex_groups(ob, b.name, active_bone.name)
 
         return {'FINISHED'}
 
@@ -166,31 +166,6 @@ class SUBTRACT_OT_vgroups(Operator):
                                     objs.append(mesh)
 
         return objs
-
-    def vgsub(self, ob, vg_A_name, vg_B_name):
-        """Remove vertex influence of group A from group B"""
-
-        vgroup_A = ob.vertex_groups.get(vg_A_name)
-        vgroup_B = ob.vertex_groups.get(vg_B_name)
-
-        if None in (vgroup_A, vgroup_B):
-            return
-
-        for (id, vert) in enumerate(ob.data.vertices):
-            available_groups = [vg.group for vg in vert.groups]
-
-            if not (vgroup_A.index in available_groups and
-                    vgroup_B.index in available_groups):
-                continue
-
-            A = vgroup_A.weight(id)
-            B = vgroup_B.weight(id)
-            sum = B - A
-
-            if sum <= 0:  # Remove vertex from group
-                vgroup_B.remove([id])
-            else:  # lower the weight of influence of group on vertex
-                vgroup_B.add([id], sum, 'REPLACE')
 
     target: EnumProperty(
         items=[
