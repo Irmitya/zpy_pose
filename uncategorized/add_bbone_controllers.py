@@ -18,7 +18,10 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.selected_pose_bones
+        if context.selected_pose_bones:
+            for bone in context.selected_pose_bones:
+                if not Is.linked(bone):
+                    return True
 
     def __init__(self):
         self.hide_bones = dict()  # bones to queue for hiding
@@ -498,6 +501,8 @@ def get_rig_bones(context):
 
     for bone in context.selected_pose_bones:
         rig = bone.id_data
+        if Is.linked(rig):
+            continue
         if rig not in rigs:
             rigs[rig] = list()
 
