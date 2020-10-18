@@ -1,5 +1,6 @@
 import bpy
-from zpy import Get, Is, New, Set, utils
+from zpy import Get, Is, New, Set, utils, register_keymaps, popup
+km = register_keymaps()
 
 
 class BBONE_OT_add_controllers(bpy.types.Operator):
@@ -478,6 +479,144 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
     )
 
 
+class BBONE_OT_remove_controllers(bpy.types.Operator):
+    bl_description = "Remove drivers and bone controllers for selected bbones"
+    bl_idname = 'zpy.remove_bbone_controllers'
+    bl_label = "Remove BBone Controllers"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        bbones = ('bbone', 'bbone_start', 'bbone_end', 'bbone_head', 'bbone_in', 'bbone_out')
+        if context.selected_pose_bones:
+            for bone in context.selected_pose_bones:
+                if Is.linked(bone):
+                    continue
+                for bb in bbones:
+                    if get_name(bone, bb) in bone.id_data.pose.bones:
+                        return True
+
+    def __init__(self):
+        self.widgets = set()
+        self.bones = dict()
+
+    def invoke(self, context, event):
+        return popup.invoke_confirm(context, self, event)
+
+    def execute(self, context):
+        (rigs, __) = get_rig_bones(context)
+
+        for (rig, bones) in rigs.items():
+            for bone in bones:
+                self.pose_func(context, rig.pose.bones[bone.name])
+
+        for rig in rigs:
+            Set.mode(context, rig, 'EDIT')
+
+        # Reparent soon-to-be orphans
+        for (pbone, rig) in self.bones.items():
+            bone = rig.data.edit_bones[pbone.name]
+
+            for parent in bone.parent_recursive:
+                if (parent not in self.bones):
+                    break
+            else:
+                parent = None
+
+            for child in bone.children:
+                if (child not in self.bones):
+                    child.parent = parent
+
+        # Remove the bbone constrollers
+        for (pbone, rig) in self.bones.items():
+            ebones = rig.data.edit_bones
+            ebones.remove(ebones[pbone.name])
+
+        for rig in rigs:
+            Set.mode(context, rig, 'POSE')
+
+            # remove unused groups
+            groups = (
+                rig.pose.bone_groups[bg] for bg in
+                ("BBone FK", "BBone Stretch", "BBone Curve", "BBone Stretch [Hidden]")
+                if rig.pose.bone_groups.get(bg)
+            )
+            for bg in list(groups):
+                for bone in rig.pose.bones:
+                    if bone.bone_group == bg:
+                        break
+                else:
+                    rig.pose.bone_groups.remove(bg)
+
+        # Remove unused widgets
+        for wgt in self.widgets:
+            if (wgt.users < 2):  # 1) mesh  2+) objects
+                wgt_col = list(wgt.users_collection)
+                bpy.data.objects.remove(wgt)
+                for col in wgt_col:
+                    if not col.all_objects:
+                        bpy.data.collections.remove(col)
+
+        return {'FINISHED'}
+
+    def pose_func(self, context, bone):
+        rig = bone.id_data
+        bones = rig.pose.bones
+        bbones = ('bbone', 'bbone_start', 'bbone_end', 'bbone_head', 'bbone_in', 'bbone_out')
+
+        def parse(bbone):
+            self.bones[bbone] = rig
+
+            # Prep the widget for removal
+            wgt = bbone.custom_shape
+            if wgt:
+                self.widgets.add(wgt)
+
+            # Remove stretch constraints
+            for con in list(bone.constraints):
+                if (getattr(con, 'target', None) == rig) and (con.subtarget == bbone.name):
+                    bone.constraints.remove(con)
+
+            # Remove Custom Handle
+            if bone.bbone_custom_handle_start == bbone:
+                bone.bone.bbone_custom_handle_start = None
+                bone.bone.bbone_handle_type_start = 'AUTO'
+            if bone.bbone_custom_handle_end == bbone:
+                bone.bone.bbone_custom_handle_end = None
+                bone.bone.bbone_handle_type_end = 'AUTO'
+
+        for bbone_name in bbones:
+            bbone = bones.get(get_name(bone, bbone_name))
+            if not bbone:
+                continue
+
+            parse(bbone)
+
+            if bbone_name in ('bbone_start', 'bbone_end') and Get.mirror_bone(bbone):
+                (prefix, replace, suffix, number) = utils.flip_name(bone.name, only_split=True)
+                center_name = prefix + suffix + number
+                center = bones.get(center_name)
+                if center:
+                    parse(center)
+
+            # Remove BBone drivers
+            if bbone_name in ('bbone_in', 'bbone_out'):
+                in_out = bbone_name.split('_')[1]
+                in_outs = (
+                    f'bbone_curve{in_out}x', f'bbone_curve{in_out}y',
+                    f'bbone_roll{in_out}', f'bbone_scale{in_out}x',
+                    f'bbone_scale{in_out}y', f'bbone_ease{in_out}',
+                )
+                for bbone_in_out in in_outs:
+                    Driver = Get.driver(bone, bbone_in_out)
+                    try:
+                        target = Driver.driver.variables[0].targets[0]
+                    except:
+                        continue
+                    if (target.bone_target == bbone.name) and (target.id == rig):
+                        bone.driver_remove(bbone_in_out)
+
+
 def get_name(bone, bbone):
     bn = bone.name
     (prefix, replace, suffix, number) = utils.flip_name(bn, only_split=True)
@@ -524,3 +663,13 @@ def draw_menu(self, context):
     layout.operator('zpy.add_bbone_controllers', text="    (start/end)", icon='IPO_BEZIER').controls = 'START/END'
     layout.operator('zpy.add_bbone_controllers', text="    (in/out)", icon='IPO_BEZIER').controls = 'IN/OUT'
     layout.operator('zpy.add_bbone_controllers', text="    (with FK)", icon='IPO_BEZIER').controls = 'ALL'
+
+
+def register():
+    args = dict(idname=BBONE_OT_remove_controllers, name='Pose', type='X')
+    km.add(**args)
+    km.add(**args, shift=True)
+
+
+def unregister():
+    km.remove()
