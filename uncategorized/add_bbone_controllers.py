@@ -26,27 +26,10 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         self.warning = ""
         self.warnings = 0
         self.delayed_parenting = list()  # bones to queue for parenting (because of order of creation)
-        self.selected = list()  # remember selected and non-selected mirror bones
         self.center_bones = dict()
 
-    def invoke(self, context, event):
-        return self.execute(context)
-
     def execute(self, context):
-        rigs = dict()
-        for bone in context.selected_pose_bones:
-            rig = bone.id_data
-            if rig not in rigs:
-                rigs[rig] = list()
-
-            if (bone not in rigs[rig]):
-                rigs[rig].append(bone)
-                self.selected.append((bone, rig))
-                if (rig.pose.use_mirror_x or rig.data.use_mirror_x):
-                    mirror = Get.mirror_bone(bone)
-                    if mirror and (mirror not in rigs[rig]):
-                        rigs[rig].append(mirror)
-                        self.selected.append((mirror, rig))
+        (rigs, self.selected) = get_rig_bones(context)
 
         for rig in rigs:
             Set.mode(context, rig, 'EDIT')
@@ -100,22 +83,6 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             do_in_out = (self.controls == 'IN/OUT')
         return (do_mch, do_start_end, do_in_out)
 
-    def get_name(self, bone, bbone):
-        bn = bone.name
-        (prefix, replace, suffix, number) = utils.flip_name(bn, only_split=True)
-
-        if bn == bn.title():
-            bbone = bbone.title()
-        elif bn == bn.upper():
-            bbone = bbone.upper()
-
-        if prefix and replace:
-            return f"{prefix}.{bbone}{replace}{suffix}{number}"
-        elif (suffix or number) and (bn != utils.flip_name(bn)):
-            return f"{prefix}{replace}{suffix}.{bbone}{number}"
-        else:
-            return f"{bn}.{bbone}"
-
     def edit_func(self, context, bone):
         rig = Get.rig(context, bone.id_data)
         ebones = rig.data.edit_bones
@@ -132,8 +99,6 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
                 return get_disconnected_parent(bone.parent, False)
             else:
                 return bone.parent
-
-        get_name = self.get_name
 
         def reset(bone, edit_bone):
             attributes = [
@@ -290,7 +255,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
     def edit_mirror_center(self, context):
         def get_bones(rig, bbone):
             ebones = rig.data.edit_bones
-            ebone = ebones.get(self.get_name(bone, bbone))
+            ebone = ebones.get(get_name(bone, bbone))
             mebone = Get.mirror_bone(ebone)
             return (ebone, mebone)
 
@@ -356,8 +321,6 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
 
         def add_driver(pbone, path, transform_type, name="var", **kargs):
             return New.driver(bone, path, target=pbone, transform_type=transform_type, name=name, **kargs)
-
-        get_name = self.get_name
 
         def pose(pbone):
             pbone.rotation_mode = 'XYZ'
@@ -510,6 +473,44 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         default='NO_MCH',
         options={'SKIP_SAVE'},
     )
+
+
+def get_name(bone, bbone):
+    bn = bone.name
+    (prefix, replace, suffix, number) = utils.flip_name(bn, only_split=True)
+
+    if bn == bn.title():
+        bbone = bbone.title()
+    elif bn == bn.upper():
+        bbone = bbone.upper()
+
+    if prefix and replace:
+        return f"{prefix}.{bbone}{replace}{suffix}{number}"
+    elif (suffix or number) and (bn != utils.flip_name(bn)):
+        return f"{prefix}{replace}{suffix}.{bbone}{number}"
+    else:
+        return f"{bn}.{bbone}"
+
+
+def get_rig_bones(context):
+    rigs = dict()  # rig object with a list of selected and mirrored bones
+    selected = list()  # remember selected and non-selected mirror bones
+
+    for bone in context.selected_pose_bones:
+        rig = bone.id_data
+        if rig not in rigs:
+            rigs[rig] = list()
+
+        if (bone not in rigs[rig]):
+            rigs[rig].append(bone)
+            selected.append((bone, rig))
+            if (rig.pose.use_mirror_x or rig.data.use_mirror_x):
+                mirror = Get.mirror_bone(bone)
+                if mirror and (mirror not in rigs[rig]):
+                    rigs[rig].append(mirror)
+                    selected.append((mirror, rig))
+
+    return (rigs, selected)
 
 
 def draw_menu(self, context):
