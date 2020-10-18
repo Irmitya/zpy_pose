@@ -29,40 +29,11 @@ class POSE_OT_auto_weights(bpy.types.Operator):
                         return True
 
     def execute(self, context):
+        (rig, meshes) = self.get_rig_meshes(context)
+        if not (rig and meshes):
+            return {'CANCELLED'}
+
         active = context.object
-        if context.mode == 'PAINT_WEIGHT':
-            meshes = {active}
-            rig = None
-            for mod in active.modifiers:
-                if (mod.type == 'ARMATURE') and (mod.object in Get.objects(context)[:]):
-                    rig = mod.object
-                    if rig.mode == 'POSE':
-                        break
-            if not rig:
-                self.report({'ERROR'}, "Can't find rig using the active mesh")
-                return {'CANCELLED'}
-        else:
-            rig = active
-            meshes = set()
-            for ob in context.selected_objects:
-                if Is.mesh(ob):
-                    for mod in ob.modifiers:
-                        if (mod.type == 'ARMATURE') and (mod.object == rig):
-                            meshes.add(ob)
-
-            if not meshes:
-                for ob in Get.objects(context):
-                    if not Is.visible(context, ob):
-                        continue
-
-                    for mod in ob.modifiers:
-                        if (mod.type == 'ARMATURE') and (mod.object == rig):
-                            meshes.add(ob)
-
-            if not meshes:
-                self.report({'ERROR'}, "Can't find mesh using the active rig")
-                return {'CANCELLED'}
-
         mode = active.mode
         pose = rig.data.pose_position
         scale = rig.scale.copy()
@@ -78,6 +49,7 @@ class POSE_OT_auto_weights(bpy.types.Operator):
                 # Sort through mesh parent hierarchy to find if the rig is a parent somewhere in there
                 mp = mp.parent
             if mp != rig:
+                # The rig/parent is already scaled, so don't scale mesh again
                 mesh.scale *= 50
             Set.active(context, mesh)
             Set.mode(context, None, 'WEIGHT_PAINT')
@@ -98,6 +70,47 @@ class POSE_OT_auto_weights(bpy.types.Operator):
             self.report({'INFO'}, f"Assigned weights to {list(meshes)[0].name}")
 
         return {'FINISHED'}
+
+    def get_rig_meshes(self, context):
+        """
+        Find the selected rigs and meshes, attached together.
+        If only a rig is selected, find all the meshes that use it.
+        """
+
+        active = context.object
+
+        if context.mode == 'PAINT_WEIGHT':
+            meshes = {active}
+            rig = None
+            for mod in active.modifiers:
+                if (mod.type == 'ARMATURE') and (mod.object in Get.objects(context)[:]):
+                    rig = mod.object
+                    if rig.mode == 'POSE':
+                        break
+            if not rig:
+                self.report({'ERROR'}, "Can't find rig using the active mesh")
+        else:
+            rig = active
+            meshes = set()
+            for ob in context.selected_objects:
+                if Is.mesh(ob):
+                    for mod in ob.modifiers:
+                        if (mod.type == 'ARMATURE') and (mod.object == rig):
+                            meshes.add(ob)
+
+            if not meshes:
+                for ob in Get.objects(context):
+                    if not Is.visible(context, ob):
+                        continue
+
+                    for mod in ob.modifiers:
+                        if (mod.type == 'ARMATURE') and (mod.object == rig):
+                            meshes.add(ob)
+
+            if not meshes:
+                self.report({'ERROR'}, "Can't find mesh using the active rig")
+
+        return (rig, meshes)
 
 
 def draw_menu(self, context):
