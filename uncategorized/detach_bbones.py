@@ -12,15 +12,17 @@ class BBONES_OT_detach_bbone(Operator):
     @classmethod
     def poll(self, context):
         if (context.mode == 'POSE'):
-            return len(Get.selected_pose_bones(context))
+            return context.selected_pose_bones
         elif (context.mode == 'EDIT_ARMATURE'):
-            return len([b for b in Get.selected_bones(context) if b.select])
+            return context.selected_bones
 
     def execute(self, context):
         if (context.mode == 'POSE'):
             bones = context.selected_pose_bones
         elif (context.mode == 'EDIT_ARMATURE'):
-            bones = [b for b in context.selected_bones if b.select]
+            bones = context.selected_bones
+        else:
+            return {'CANCELLED'}
 
         for _bone in bones:
             if (context.mode == 'POSE'):
