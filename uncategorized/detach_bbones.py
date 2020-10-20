@@ -16,11 +16,24 @@ class BBONES_OT_detach_bbone(Operator):
         elif (context.mode == 'EDIT_ARMATURE'):
             return context.selected_bones
 
+    def __init__(self):
+        self.selected = False
+
+    def invoke(self, context, event):
+        self.selected = event.alt
+        return self.execute(context)
+
     def execute(self, context):
         if (context.mode == 'POSE'):
-            bones = context.selected_pose_bones
+            if self.selected:
+                bones = context.selected_pose_bones
+            else:
+                bones = [context.active_pose_bone]
         elif (context.mode == 'EDIT_ARMATURE'):
-            bones = context.selected_bones
+            if self.selected:
+                bones = context.selected_bones
+            else:
+                bones = [context.active_bone]
         else:
             return {'CANCELLED'}
 
