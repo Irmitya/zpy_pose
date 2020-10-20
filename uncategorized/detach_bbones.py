@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import Operator
-from zpy import Get
+from zpy import Get, Is
 
 
 class BBONES_OT_detach_bbone(Operator):
@@ -18,6 +18,7 @@ class BBONES_OT_detach_bbone(Operator):
 
     def __init__(self):
         self.selected = False
+        self.default_auto = None
 
     def invoke(self, context, event):
         self.selected = event.alt
@@ -29,66 +30,80 @@ class BBONES_OT_detach_bbone(Operator):
                 bones = context.selected_pose_bones
             else:
                 bones = [context.active_pose_bone]
-        elif (context.mode == 'EDIT_ARMATURE'):
+        else:
             if self.selected:
                 bones = context.selected_bones
             else:
                 bones = [context.active_bone]
-        else:
-            return {'CANCELLED'}
 
-        default_auto = None
 
         for _bone in bones:
-            if (context.mode == 'POSE'):
-                bone = _bone.bone
-                if _bone.child:
-                    child = _bone.child.bone
-                else:
-                    # No bone connected, so try to find a substitute
-                    child = self.get_closest_child(bone)
-            elif (context.mode == 'EDIT_ARMATURE'):
-                bone = _bone
-                child = None
-                if len(bone.children) == 1:
-                    child = bone.children[0]
-                elif bone.children:
-                    for bone_child in bone.children:
-                        if bone_child.use_connect:
-                            if (child is not None):
-                                child_dist = Get.distance(child.tail, bone.tail)
-                                active_dist = Get.distance(bone_child.tail, bone.tail)
-                                if (child_dist == active_dist):
-                                    # both children tails same distance from bone
-                                    # Just sort alphabetically
-                                    child = sorted((b.name, b) for b in [child, bone_child])[0][1]
-                                    continue
-                                elif (child_dist < active_dist):
-                                    # Previous is closes
-                                    continue
-                            child = bone_child
-                    if child is None:
-                        # No bone connected, so try to find a substitute
-                        child = self.get_closest_child(bone)
+            (bone, child) = self.get_bone_child(_bone)
+            self.set_bbone(bone, child)
 
-            if default_auto is None:
-                default_auto = 'AUTO' not in (bone.bbone_handle_type_start, bone.bbone_handle_type_end)
-
-            if default_auto:
-                bone.bbone_handle_type_start = bone.bbone_handle_type_end = 'AUTO'
-                bone.bbone_custom_handle_end = bone.bbone_custom_handle_start = None
+            if Is.posebone(_bone):
+                mirror_x = (_bone.id_data.use_mirror_x or bone.id_data.use_mirror_x)
             else:
-                if (bone.bbone_handle_type_start == 'AUTO'):
-                    bone.bbone_handle_type_start = 'ABSOLUTE'
-                if (bone.bbone_handle_type_end == 'AUTO'):
-                    bone.bbone_handle_type_end = 'ABSOLUTE'
+                mirror_x = bone.id_data.use_mirror_x
 
-                bone.bbone_custom_handle_end = child\
-                    if child else None
-                bone.bbone_custom_handle_start = bone.parent\
-                    if bone.parent else None
+            if mirror_x:
+                m_bone = Get.mirror_bone(_bone)
+                if m_bone and (m_bone not in bones):
+                    (mbone, mchild) = self.get_bone_child(m_bone)
+                    self.set_bbone(mbone, mchild)
 
         return {'FINISHED'}
+
+    def get_bone_child(self, _bone):
+        if Is.posebone(_bone):
+            bone = _bone.bone
+            if _bone.child:
+                child = _bone.child.bone
+            else:
+                # No bone connected, so try to find a substitute
+                child = self.get_closest_child(bone)
+        else:
+            bone = _bone
+            child = None
+            if len(bone.children) == 1:
+                child = bone.children[0]
+            elif bone.children:
+                for bone_child in bone.children:
+                    if bone_child.use_connect:
+                        if (child is not None):
+                            child_dist = Get.distance(child.tail, bone.tail)
+                            active_dist = Get.distance(bone_child.tail, bone.tail)
+                            if (child_dist == active_dist):
+                                # both children tails same distance from bone
+                                # Just sort alphabetically
+                                child = sorted((b.name, b) for b in [child, bone_child])[0][1]
+                                continue
+                            elif (child_dist < active_dist):
+                                # Previous is closes
+                                continue
+                        child = bone_child
+                if child is None:
+                    # No bone connected, so try to find a substitute
+                    child = self.get_closest_child(bone)
+        return (bone, child)
+
+    def set_bbone(self, bone, child):
+        if self.default_auto is None:
+            self.default_auto = 'AUTO' not in (bone.bbone_handle_type_start, bone.bbone_handle_type_end)
+
+        if self.default_auto:
+            bone.bbone_handle_type_start = bone.bbone_handle_type_end = 'AUTO'
+            bone.bbone_custom_handle_end = bone.bbone_custom_handle_start = None
+        else:
+            if (bone.bbone_handle_type_start == 'AUTO'):
+                bone.bbone_handle_type_start = 'ABSOLUTE'
+            if (bone.bbone_handle_type_end == 'AUTO'):
+                bone.bbone_handle_type_end = 'ABSOLUTE'
+
+            bone.bbone_custom_handle_end = child\
+                if child else None
+            bone.bbone_custom_handle_start = bone.parent\
+                if bone.parent else None
 
     @staticmethod
     def get_closest_child(bone):
