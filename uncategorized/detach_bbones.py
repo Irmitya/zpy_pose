@@ -42,7 +42,7 @@ class BBONES_OT_detach_bbone(Operator):
             self.set_bbone(bone, child)
 
             if Is.posebone(_bone):
-                mirror_x = (_bone.id_data.use_mirror_x or bone.id_data.use_mirror_x)
+                mirror_x = (_bone.id_data.pose.use_mirror_x or bone.id_data.use_mirror_x)
             else:
                 mirror_x = bone.id_data.use_mirror_x
 
