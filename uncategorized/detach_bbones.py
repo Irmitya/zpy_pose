@@ -37,6 +37,8 @@ class BBONES_OT_detach_bbone(Operator):
         else:
             return {'CANCELLED'}
 
+        default_auto = None
+
         for _bone in bones:
             if (context.mode == 'POSE'):
                 bone = _bone.bone
@@ -69,15 +71,22 @@ class BBONES_OT_detach_bbone(Operator):
                         # No bone connected, so try to find a substitute
                         child = self.get_closest_child(bone)
 
-            if (bone.bbone_handle_type_start == 'AUTO'):
-                bone.bbone_handle_type_start = 'ABSOLUTE'
-            if (bone.bbone_handle_type_end == 'AUTO'):
-                bone.bbone_handle_type_end = 'ABSOLUTE'
+            if default_auto is None:
+                default_auto = 'AUTO' not in (bone.bbone_handle_type_start, bone.bbone_handle_type_end)
 
-            bone.bbone_custom_handle_end = child\
-                if child else None
-            bone.bbone_custom_handle_start = bone.parent\
-                if bone.parent else None
+            if default_auto:
+                bone.bbone_handle_type_start = bone.bbone_handle_type_end = 'AUTO'
+                bone.bbone_custom_handle_end = bone.bbone_custom_handle_start = None
+            else:
+                if (bone.bbone_handle_type_start == 'AUTO'):
+                    bone.bbone_handle_type_start = 'ABSOLUTE'
+                if (bone.bbone_handle_type_end == 'AUTO'):
+                    bone.bbone_handle_type_end = 'ABSOLUTE'
+
+                bone.bbone_custom_handle_end = child\
+                    if child else None
+                bone.bbone_custom_handle_start = bone.parent\
+                    if bone.parent else None
 
         return {'FINISHED'}
 
