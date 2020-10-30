@@ -34,8 +34,8 @@ class POSE_OT_fill_bone_gaps(bpy.types.Operator):
 
             mode = rig.mode
 
-            if not Set.mode(context, rig, 'EDIT'):
-                Set.mode(context, rig, mode)
+            if not Set.mode(context, 'EDIT', rig):
+                Set.mode(context, mode, rig)
                 continue
             mirror = rig.data.use_mirror_x
             rig.data.use_mirror_x = False
@@ -102,7 +102,7 @@ class POSE_OT_fill_bone_gaps(bpy.types.Operator):
                     links.append(link.name)
 
             rig.data.use_mirror_x = mirror
-            Set.mode(context, rig, 'POSE')
+            Set.mode(context, 'POSE', rig)
 
             for link in links:
                 link = rig.pose.bones.get(link, None)
@@ -159,7 +159,7 @@ class POSE_OT_fill_bone_gaps(bpy.types.Operator):
 
                 link.bone_group = bgroup('<>')
 
-            Set.mode(context, rig, mode)
+            Set.mode(context, mode, rig)
         # if active:
             # Set.active(context, active)
         return {'FINISHED'}

@@ -22,7 +22,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
         any_polled = False
 
         for rig in objects:
-            if not Is.armature(rig) or not Set.mode(context, rig, 'EDIT'):
+            if not Is.armature(rig) or not Set.mode(context, 'EDIT', rig):
                 # object can't go into (armature) edit mode
                 continue
 
@@ -86,7 +86,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
         bone = str(bone.name)
 
         # Switch back to Pose mode and setup pose bones
-        Set.mode(context, rig, 'POSE')
+        Set.mode(context, 'POSE', rig)
 
         bone = rig.data.bones[bone]
         rig.data.bones.active = bone
@@ -110,7 +110,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
         root = str(root.name)
 
         # Switch back to Pose mode and setup pose bones
-        Set.mode(context, rig, 'POSE')
+        Set.mode(context, 'POSE', rig)
 
         root = rig.pose.bones[root]
 
@@ -147,7 +147,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
                     flip_bones.append(flip)
 
         # Switch back to Pose mode and setup pose bones
-        Set.mode(context, rig, 'POSE')
+        Set.mode(context, 'POSE', rig)
 
         for (bone, prev) in pose_bones:
             bone = rig.pose.bones[bone]
@@ -180,7 +180,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
             bone.parent = prev
 
         # Switch back to Pose mode and setup pose bones
-        Set.mode(context, rig, 'POSE')
+        Set.mode(context, 'POSE', rig)
 
         for bone, prev in pose_bones:
             bone = rig.pose.bones[bone]
@@ -247,7 +247,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
             Set.select(bone, False)
 
         # Switch back to Pose mode and setup pose bones
-        Set.mode(context, rig, 'POSE')
+        Set.mode(context, 'POSE', rig)
 
         for bone, prev in pose_bones:
             bone = rig.pose.bones[bone]
@@ -279,7 +279,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
             bone.use_deform = False
 
         # Switch back to Pose mode and setup pose bones
-        Set.mode(context, rig, 'POSE')
+        Set.mode(context, 'POSE', rig)
 
         for bone, prev in pose_bones:
             bone = rig.pose.bones[bone]
@@ -374,7 +374,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
             ...
 
         # Switch back to Pose mode and setup pose bones
-        Set.mode(context, rig, 'POSE')
+        Set.mode(context, 'POSE', rig)
 
         for bone, prev in pose_bones:
             prev, head, tail = prev
@@ -425,7 +425,7 @@ class POSE_OT_add_bone(bpy.types.Operator):
             bone.use_deform = False
 
         # Switch back to Pose mode and setup pose bones
-        Set.mode(context, rig, 'POSE')
+        Set.mode(context, 'POSE', rig)
 
         for bone, prev in pose_bones:
             bone = rig.pose.bones[bone]

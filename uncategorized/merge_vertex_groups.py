@@ -61,10 +61,10 @@ class MERGE_OT_vgroups(Operator):
                         ch.parent_bone = bone1.name
                         Set.matrix(ch, mat)
                 name2 = bone2.name
-                Set.mode(context, None, mode='EDIT')
+                Set.mode(context, mode='EDIT')
                 bone2 = rig.data.edit_bones[name2]
                 rig.data.edit_bones.remove(bone2)
-                Set.mode(context, None, mode='POSE')
+                Set.mode(context, mode='POSE')
 
         if active:
             Set.active(context, active)

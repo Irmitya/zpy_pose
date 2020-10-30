@@ -47,7 +47,7 @@ class CON_OT_add_ik_chain(bpy.types.Operator):
             bone_name = bone.name
 
             # Get and create bones for edit mode
-            Set.mode(context, rig, 'EDIT')
+            Set.mode(context, 'EDIT', rig)
             editbone = rig.data.edit_bones[bone_name]
 
             class fk:
@@ -90,7 +90,7 @@ class CON_OT_add_ik_chain(bpy.types.Operator):
                 b.parent = i
 
             # Switch bones back to pose mode
-            Set.mode(context, rig, 'POSE')
+            Set.mode(context, 'POSE', rig)
             bones = rig.pose.bones
 
             class fk:

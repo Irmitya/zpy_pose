@@ -50,14 +50,14 @@ class MACRO_OT_rigify_to_meta(bpy.types.Operator):
             pose.append((meta, rig))
         else:
             if mode == 'POSE':
-                Set.mode(context, None, 'OBJECT')
+                Set.mode(context, 'OBJECT')
             for (meta, rig) in pose:
                 Set.select(rig, False)
                 Set.select(meta, True)
                 if rig == active:
                     Set.active(context, meta)
             if mode == 'POSE':
-                Set.mode(context, None, 'POSE')
+                Set.mode(context, 'POSE')
 
         return {'FINISHED'}
 
@@ -183,8 +183,8 @@ def add_placeholder_bones(rigify, obj, metarig):
 
     rigify_mode = rigify.mode
     meta_mode = metarig.mode
-    Set.mode(context, metarig, 'EDIT')
-    Set.mode(context, rigify, 'EDIT')
+    Set.mode(context, 'EDIT', metarig)
+    Set.mode(context, 'EDIT', rigify)
 
     for rigify_bone in rigify.data.edit_bones.keys():
         if not rigify_bone.startswith('DEF-'):
@@ -227,5 +227,5 @@ def add_placeholder_bones(rigify, obj, metarig):
             if mbone.parent:
                 mbone.layers = mbone.parent.layers
 
-    Set.mode(context, metarig, meta_mode)
-    Set.mode(context, rigify, rigify_mode)
+    Set.mode(context, meta_mode, metarig)
+    Set.mode(context, rigify_mode, rigify)

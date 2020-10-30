@@ -43,7 +43,7 @@ class POSE_OT_set_parent(bpy.types.Operator):
             if rig.mode != 'POSE':
                 continue
 
-            Set.mode(context, rig, 'EDIT')
+            Set.mode(context, 'EDIT', rig)
             mirror = rig.data.use_mirror_x
             rig.data.use_mirror_x = False
 
@@ -86,7 +86,7 @@ class POSE_OT_set_parent(bpy.types.Operator):
                         eb.use_connect = True
 
             rig.data.use_mirror_x = mirror
-            Set.mode(context, rig, 'POSE')
+            Set.mode(context, 'POSE', rig)
 
         if props.keep_matrix:
             # ap.matrix = matrices[ap]

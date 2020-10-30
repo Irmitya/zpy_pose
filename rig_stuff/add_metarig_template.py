@@ -27,7 +27,7 @@ class METARIG_OT_add_rig(bpy.types.Operator):
 
         # Create metarig
         Set.active_select(context, obj, True)
-        Set.mode(context, obj, 'EDIT')
+        Set.mode(context, 'EDIT', obj)
         create(obj)
 
         bpy.ops.object.mode_set(mode=active_mode)

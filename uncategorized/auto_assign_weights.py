@@ -48,7 +48,7 @@ class POSE_OT_auto_weights(bpy.types.Operator):
         if use_mask:
             active_bone.select = False
 
-        Set.mode(context, None, 'OBJECT')
+        Set.mode(context, 'OBJECT')
         rig.data.pose_position = 'REST'
         rig.scale *= 50
 
@@ -62,7 +62,7 @@ class POSE_OT_auto_weights(bpy.types.Operator):
                 # The rig/parent is already scaled, so don't scale mesh again
                 mesh.scale *= 50
             Set.active(context, mesh)
-            Set.mode(context, None, 'WEIGHT_PAINT')
+            Set.mode(context, 'WEIGHT_PAINT')
 
             vg = mesh.vertex_groups
             bone_group = vg.get(active_bone.name)
@@ -84,13 +84,13 @@ class POSE_OT_auto_weights(bpy.types.Operator):
             if (mindex != -1):
                 vg.active_index = mindex
 
-            Set.mode(context, None, 'OBJECT')
+            Set.mode(context, 'OBJECT')
             mesh.scale = mscale
 
         Set.active(context, active)
         rig.scale = scale
         rig.data.pose_position = pose
-        Set.mode(context, None, mode)
+        Set.mode(context, mode)
 
         if use_mask:
             active_bone.select = True

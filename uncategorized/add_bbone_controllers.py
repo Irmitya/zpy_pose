@@ -36,7 +36,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
         (rigs, self.selected) = get_rig_bones(context)
 
         for rig in rigs:
-            Set.mode(context, rig, 'EDIT')
+            Set.mode(context, 'EDIT', rig)
             self.hide_bones[rig] = list()
             self.center_bones[rig] = list()
         for (rig, bones) in rigs.items():
@@ -52,7 +52,7 @@ class BBONE_OT_add_controllers(bpy.types.Operator):
             self.report({'WARNING'}, self.warning)
 
         for rig in rigs:
-            Set.mode(context, rig, 'POSE')
+            Set.mode(context, 'POSE', rig)
         for (rig, bones) in rigs.items():
             for bone in bones:
                 self.pose_func(context, rig.pose.bones[bone.name])
@@ -511,7 +511,7 @@ class BBONE_OT_remove_controllers(bpy.types.Operator):
                 self.pose_func(context, rig.pose.bones[bone.name])
 
         for rig in rigs:
-            Set.mode(context, rig, 'EDIT')
+            Set.mode(context, 'EDIT', rig)
 
         # Reparent soon-to-be orphans
         for (pbone, rig) in self.bones.items():
@@ -533,7 +533,7 @@ class BBONE_OT_remove_controllers(bpy.types.Operator):
             ebones.remove(ebones[pbone.name])
 
         for rig in rigs:
-            Set.mode(context, rig, 'POSE')
+            Set.mode(context, 'POSE', rig)
 
             # remove unused groups
             groups = (

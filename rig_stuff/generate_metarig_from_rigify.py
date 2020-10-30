@@ -32,14 +32,14 @@ class MACRO_OT_meta_from_rigify(bpy.types.Operator):
             if context.mode != mode:
                 bpy.ops.object.mode_set(mode=mode)
             # if mode == 'POSE':
-            #     Set.mode(context, None, 'OBJECT')
+            #     Set.mode(context, 'OBJECT')
             # for (meta, rig) in pose:
             #     Set.select(rig, True)
             #     Set.select(meta, False)
             #     if meta == active:
             #         Set.active(context, rig)
             # if mode == 'POSE':
-            #     Set.mode(context, None, 'POSE')
+            #     Set.mode(context, 'POSE')
 
         return {'FINISHED'}
 
@@ -47,7 +47,7 @@ class MACRO_OT_meta_from_rigify(bpy.types.Operator):
 def metafy_rigify(context, rig):
     """Isolate Org bones in rig, then mimic the likely original bone layers"""
 
-    Set.mode(context, rig, 'EDIT')
+    Set.mode(context, 'EDIT', rig)
 
     bones = rig.data.edit_bones
     for bone in bones.values():
@@ -57,7 +57,7 @@ def metafy_rigify(context, rig):
         else:
             bones.remove(bone)
 
-    Set.mode(context, rig, 'POSE')
+    Set.mode(context, 'POSE', rig)
 
     for bone in rig.pose.bones:
         bone.lock_rotation_w = False

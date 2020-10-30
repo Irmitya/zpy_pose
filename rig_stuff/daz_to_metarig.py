@@ -52,8 +52,8 @@ class MACRO_OT_daz_to_metarig(bpy.types.Operator):
 
             # Create metarig
             Set.active_select(context, meta, False)
-            Set.mode(context, daz, 'EDIT')
-            Set.mode(context, meta, 'EDIT')
+            Set.mode(context, 'EDIT', daz)
+            Set.mode(context, 'EDIT', meta)
             daz_to_meta(daz, meta)
             bpy.ops.object.mode_set(mode=active_mode)
             Set.select(daz, False)

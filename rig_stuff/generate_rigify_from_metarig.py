@@ -179,7 +179,7 @@ def adjust_rigify(rig):
         The Toe controller bone may have a bad automated roll, so recalculate it
         """
         mode = Get.mode(rig)
-        Set.mode(bpy.context, rig, 'EDIT')
+        Set.mode(bpy.context, 'EDIT', rig)
         bones = rig.data.edit_bones
 
         ebones = bpy.context.selected_bones
@@ -213,7 +213,7 @@ def adjust_rigify(rig):
         for ebone in ebones:
             ebone.select = True
 
-        Set.mode(bpy.context, rig, mode)
+        Set.mode(bpy.context, mode, rig)
     fix_toe_roll()
 
     # Fix default pole location
@@ -298,11 +298,11 @@ def adjust_rigify(rig):
         if poles:
             utils.update(bpy.context)
             mode = Get.mode(rig)
-            Set.mode(bpy.context, rig, 'EDIT')
+            Set.mode(bpy.context, 'EDIT', rig)
             for (name, mat) in poles.items():
                 edit_bone = rig.data.edit_bones[name]
                 Set.matrix(edit_bone, mat)
-            Set.mode(bpy.context, rig, mode)
+            Set.mode(bpy.context, mode, rig)
     fix_poles()
 
     # # Adjust the influence of the default Copy Rotation constraint

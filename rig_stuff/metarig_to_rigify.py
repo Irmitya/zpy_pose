@@ -50,14 +50,14 @@ class MACRO_OT_meta_to_rigify(bpy.types.Operator):
             pose.append((meta, rig))
         else:
             if mode == 'POSE':
-                Set.mode(context, None, 'OBJECT')
+                Set.mode(context, 'OBJECT')
             for (meta, rig) in pose:
                 Set.select(rig, True)
                 Set.select(meta, False)
                 if meta == active:
                     Set.active(context, rig)
             if mode == 'POSE':
-                Set.mode(context, None, 'POSE')
+                Set.mode(context, 'POSE')
 
         return {'FINISHED'}
 
